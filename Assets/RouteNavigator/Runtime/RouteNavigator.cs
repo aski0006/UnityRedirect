@@ -221,13 +221,6 @@ namespace Kogane.RouteNavigator
             _typedInterceptors.Sort((a, b) => a.Order.CompareTo(b.Order));
         }
     }
-            LoadPersistence();
-
-            lock (_lock)
-            {
-                _typedInterceptors.Sort((a, b) => a.Order.CompareTo(b.Order));
-            }
-        }
 
         /// <summary>判断拦截器是否在运行时注册的（而非持久化加载的），暂无法精确区分，保留所有</summary>
         private static bool IsRuntimeRegistered(INavigationInterceptor<TData> interceptor)
