@@ -14,7 +14,7 @@ namespace Kogane.RouteNavigator
         public const int Default = 0;
 
         /// <summary>通用检查（权限、条件等）</summary>
-        public const int Early = -100;
+        public const int Early = 200;
 
         /// <summary>目标解析</summary>
         public const int ResolveTarget = 500;

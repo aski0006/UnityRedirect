@@ -1,3 +1,6 @@
+#if UNITY_EDITOR
+using UnityEditor;
+#endif
 using UnityEngine;
 
 namespace Kogane.RouteNavigator
@@ -48,10 +51,17 @@ namespace Kogane.RouteNavigator
         [Header("目标类型")]
         [SerializeField] private RouteTargetType targetType;
 
-        [Header("目标引用")]
-        [SerializeField] private GameObject directReference;
-        [SerializeField] private GameObject prefabReference;
+        [Header("场景引用（TargetType = Scene 时使用）")]
+#if UNITY_EDITOR
+        [SerializeField] private SceneAsset sceneAsset;
+#endif
         [SerializeField] private string scenePath;
+
+        [Header("场景物体引用（GameObjectInScene）")]
+        [SerializeField] private GameObject directReference;
+
+        [Header("Prefab 引用（Prefab）")]
+        [SerializeField] private GameObject prefabReference;
 
         [Header("加载行为")]
         [SerializeField] private LoadMode loadMode;
@@ -70,14 +80,19 @@ namespace Kogane.RouteNavigator
         /// <summary>目标类型</summary>
         public RouteTargetType TargetType => targetType;
 
-        /// <summary>场景物体直接引用（TargetType = GameObjectInScene 时使用）</summary>
+#if UNITY_EDITOR
+        /// <summary>场景资产引用（编辑器拖拽用）</summary>
+        public SceneAsset SceneAsset => sceneAsset;
+#endif
+
+        /// <summary>场景路径（运行时使用，编辑器下由 OnValidate 自动填充）</summary>
+        public string ScenePath => scenePath;
+
+        /// <summary>场景物体直接引用</summary>
         public GameObject DirectReference => directReference;
 
-        /// <summary>Prefab 引用（TargetType = Prefab 时使用）</summary>
+        /// <summary>Prefab 引用</summary>
         public GameObject PrefabReference => prefabReference;
-
-        /// <summary>场景路径（TargetType = Scene 时使用）</summary>
-        public string ScenePath => scenePath;
 
         /// <summary>加载模式</summary>
         public LoadMode LoadMode => loadMode;
@@ -97,6 +112,13 @@ namespace Kogane.RouteNavigator
             {
                 routeId = name;
             }
+
+#if UNITY_EDITOR
+            if (sceneAsset != null)
+            {
+                scenePath = AssetDatabase.GetAssetPath(sceneAsset);
+            }
+#endif
         }
     }
 }

@@ -32,6 +32,13 @@ namespace Kogane.RouteNavigator
                     {
                         _instance.RebuildGlobalInterceptors();
                     }
+#if UNITY_EDITOR
+                    else
+                    {
+                        Debug.LogWarning(
+                            "[RouteCore] 未找到 RouteCore 资产。请创建 RouteCore 并放置于 Resources 文件夹。");
+                    }
+#endif
                 }
                 return _instance;
             }
@@ -86,15 +93,26 @@ namespace Kogane.RouteNavigator
         {
             _globalInterceptors.Clear();
 
+            if (globalInterceptorConfigs == null) return;
+
             for (var i = 0; i < globalInterceptorConfigs.Count; i++)
             {
                 var config = globalInterceptorConfigs[i];
                 if (config == null || !config.Enabled) continue;
 
-                var interceptor = config.CreateInstance();
+                var interceptor = config.CreateBaseInstance();
                 if (interceptor != null)
                 {
-                    _globalInterceptors.Add(interceptor);
+                    // 应用 orderOverride
+                    if (config.HasOrderOverride)
+                    {
+                        _globalInterceptors.Add(
+                            new OrderedInterceptorWrapper(interceptor, config.OrderOverrideValue));
+                    }
+                    else
+                    {
+                        _globalInterceptors.Add(interceptor);
+                    }
                 }
             }
 
@@ -107,6 +125,33 @@ namespace Kogane.RouteNavigator
         {
             routes = routeList;
         }
+
+        /// <summary>设置通用拦截器配置（编辑器用）</summary>
+        internal void SetGlobalInterceptorConfigs(List<InterceptorConfig> configs)
+        {
+            globalInterceptorConfigs = configs;
+            RebuildGlobalInterceptors();
+        }
+
+        /// <summary>
+        /// 以 OrderOverride 值包装拦截器，覆盖其原始 Order。
+        /// </summary>
+        private sealed class OrderedInterceptorWrapper : INavigationInterceptorBase
+        {
+            private readonly INavigationInterceptorBase _inner;
+            public int Order { get; }
+
+            public OrderedInterceptorWrapper(INavigationInterceptorBase inner, int order)
+            {
+                _inner = inner;
+                Order = order;
+            }
+
+            public System.Collections.IEnumerator OnNavigate(NavigationContextBase context)
+            {
+                return _inner.OnNavigate(context);
+            }
+        }
     }
 
     /// <summary>
@@ -117,6 +162,7 @@ namespace Kogane.RouteNavigator
     {
         [SerializeField] private string typeName;
         [SerializeField] private bool enabled = true;
+        [SerializeField] private int orderOverride;
 
         /// <summary>拦截器完整类型名</summary>
         public string TypeName => typeName;
@@ -124,8 +170,16 @@ namespace Kogane.RouteNavigator
         /// <summary>是否启用</summary>
         public bool Enabled => enabled;
 
-        /// <summary>创建拦截器实例</summary>
-        public INavigationInterceptorBase CreateInstance()
+        /// <summary>是否有 Order 覆盖值</summary>
+        public bool HasOrderOverride => orderOverride != 0;
+
+        /// <summary>Order 覆盖值（0 表示使用代码中的 Order）</summary>
+        public int OrderOverrideValue => orderOverride;
+
+        /// <summary>
+        /// 创建通用拦截器实例（实现 INavigationInterceptorBase 的类型）。
+        /// </summary>
+        public INavigationInterceptorBase CreateBaseInstance()
         {
             if (string.IsNullOrEmpty(typeName)) return null;
 
@@ -133,6 +187,20 @@ namespace Kogane.RouteNavigator
             if (type == null) return null;
 
             return System.Activator.CreateInstance(type) as INavigationInterceptorBase;
+        }
+
+        /// <summary>
+        /// 创建类型专属拦截器实例（实现 INavigationInterceptor{TData} 的类型）。
+        /// </summary>
+        public INavigationInterceptor<TData> CreateTypedInstance<TData>()
+            where TData : struct
+        {
+            if (string.IsNullOrEmpty(typeName)) return null;
+
+            var type = System.Type.GetType(typeName);
+            if (type == null) return null;
+
+            return System.Activator.CreateInstance(type) as INavigationInterceptor<TData>;
         }
     }
 }
