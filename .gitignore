@@ -1,0 +1,60 @@
+# Unity project folders
+[Ll]ibrary/
+[Tt]emp/
+[Oo]bj/
+[Bb]uild/
+[Bb]uilds/
+[Ll]ogs/
+[Uu]ser[Ss]ettings/
+
+# MemoryCaptures can get excessive with .memorycapture files
+[Mm]emory[Cc]aptures/
+
+# Visual Studio / Rider / VS Code
+.vs/
+*.csproj
+*.sln
+*.suo
+*.user
+*.userosscache
+*.userprefs
+.idea/
+*.swp
+*.swo
+*~
+
+# macOS
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+Icon?
+
+# Windows
+Thumbs.db
+Desktop.ini
+
+# Git LFS
+*.psd
+*.png
+*.jpg
+*.jpeg
+*.tga
+*.tiff
+*.bmp
+*.exr
+*.fbx
+*.mp3
+*.wav
+*.ogg
+*.avi
+*.mov
+*.mp4
+
+# Crashlytics / Fabric
+crashlytics-*.plist
+fabric-*.info
+
+# JetBrains Rider
+.slog/
