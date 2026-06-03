@@ -200,27 +200,24 @@ namespace Kogane.RouteNavigator
 
         /// <summary>
         /// 刷新持久化配置（编辑器保存配置后调用）。
+        /// 注意：此操作会丢弃当前持有的所有类型专属拦截器（包括运行时通过 RegisterInterceptor
+        /// 动态注册的），然后从 RouteRegistry 资产重新加载。如果需要在编辑器中保留运行时注册的
+        /// 拦截器，请先将它们写入 RouteRegistry 资产。
         /// </summary>
-        /// <summary>
-    /// 刷新持久化配置（编辑器保存配置后调用）。
-    /// 注意：此操作会丢弃当前持有的所有类型专属拦截器（包括运行时通过 RegisterInterceptor
-    /// 动态注册的），然后从 RouteRegistry 资产重新加载。如果需要在编辑器中保留运行时注册的
-    /// 拦截器，请先将它们写入 RouteRegistry 资产。
-    /// </summary>
-    internal static void ReloadPersistence()
-    {
-        lock (_lock)
+        internal static void ReloadPersistence()
         {
-            _typedInterceptors.RemoveAll(i => !IsRuntimeRegistered(i));
-            _persistenceLoaded = false;
-        }
-        LoadPersistence();
+            lock (_lock)
+            {
+                _typedInterceptors.RemoveAll(i => !IsRuntimeRegistered(i));
+                _persistenceLoaded = false;
+            }
+            LoadPersistence();
 
-        lock (_lock)
-        {
-            _typedInterceptors.Sort((a, b) => a.Order.CompareTo(b.Order));
+            lock (_lock)
+            {
+                _typedInterceptors.Sort((a, b) => a.Order.CompareTo(b.Order));
+            }
         }
-    }
 
         /// <summary>判断拦截器是否在运行时注册的（而非持久化加载的），暂无法精确区分，保留所有</summary>
         private static bool IsRuntimeRegistered(INavigationInterceptor<TData> interceptor)
