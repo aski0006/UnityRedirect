@@ -225,6 +225,31 @@ namespace Kogane.RouteNavigator
             return false; // 简化：ReloadPersistence 时全部从持久化重新加载
         }
 
+        /// <summary>
+        /// 安全执行拦截器协程，捕获异常而不使用 try-catch 包裹 yield return。
+        /// </summary>
+        private static IEnumerator ExecuteInterceptorSafely(
+            IEnumerator routine,
+            Action<Exception> onError)
+        {
+            while (true)
+            {
+                bool hasNext;
+                try
+                {
+                    hasNext = routine.MoveNext();
+                }
+                catch (Exception e)
+                {
+                    onError?.Invoke(e);
+                    yield break;
+                }
+                if (!hasNext) break;
+                yield return routine.Current;
+            }
+        }
+
+
         private static IEnumerator ExecutePipeline(
             NavigationContext<TData> ctx,
             int version,
@@ -243,19 +268,16 @@ namespace Kogane.RouteNavigator
 
                         if (!IsCurrentVersion(version, ctx)) yield break;
 
-                        try
+                        bool hasError = false;
+                        yield return ExecuteInterceptorSafely(interceptor.OnNavigate(ctx), e =>
                         {
-                            yield return interceptor.OnNavigate(ctx);
-                        }
-                        catch (Exception e)
-                        {
+                            hasError = true;
                             Debug.LogError(
                                 $"[Route] 通用拦截器异常 [{interceptor.GetType().Name}]: {e.Message}");
                             ctx.Cancel = true;
                             ctx.Result = NavigationResult.Failed(
                                 $"拦截器异常: {interceptor.GetType().Name}");
-                            yield break;
-                        }
+                        });
 
                         if (ctx.Cancel) yield break;
                     }
@@ -274,19 +296,16 @@ namespace Kogane.RouteNavigator
 
                     if (!IsCurrentVersion(version, ctx)) yield break;
 
-                    try
+                    bool hasError = false;
+                    yield return ExecuteInterceptorSafely(interceptor.OnNavigate(ctx), e =>
                     {
-                        yield return interceptor.OnNavigate(ctx);
-                    }
-                    catch (Exception e)
-                    {
+                        hasError = true;
                         Debug.LogError(
                             $"[Route] 拦截器异常 [{interceptor.GetType().Name}]: {e.Message}");
                         ctx.Cancel = true;
                         ctx.Result = NavigationResult.Failed(
                             $"拦截器异常: {interceptor.GetType().Name}");
-                        yield break;
-                    }
+                    });
 
                     if (ctx.Cancel) yield break;
                 }
