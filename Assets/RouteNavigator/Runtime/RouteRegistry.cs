@@ -5,21 +5,19 @@ namespace Kogane.RouteNavigator
 {
     /// <summary>
     /// 类型专属拦截器分组。
-    /// 存储某个特定 TData 类型的路由与拦截器配置。
+    /// 存储某个特定 TData 类型的拦截器持久化配置。
     /// </summary>
     [System.Serializable]
     public sealed class TypedInterceptorGroup
     {
         [SerializeField] private string dataTypeFullName;
+        [SerializeField] private List<InterceptorConfig> interceptors = new();
 
         /// <summary>TData 类型的 FullName</summary>
         public string DataTypeFullName => dataTypeFullName;
 
-        /// <summary>该类型下的路由定义列表</summary>
-        public List<RouteDefinition> routes = new();
-
         /// <summary>该类型下的拦截器配置列表</summary>
-        public List<InterceptorConfig> interceptors = new();
+        public IReadOnlyList<InterceptorConfig> Interceptors => interceptors;
 
         public TypedInterceptorGroup(string typeFullName)
         {
@@ -29,8 +27,16 @@ namespace Kogane.RouteNavigator
 
     /// <summary>
     /// 路由注册表资产。
-    /// 存储所有 TData 类型的路由定义和类型专属拦截器配置。
+    /// 存储所有 TData 类型的类型专属拦截器配置。
     /// 域重载后由 RouteNavigator{TData} 静态构造器自动加载恢复。
+    ///
+    /// 设计决策（与规范 v7 的差异说明）：
+    /// 规范原设计为每个 TData 对应一个独立 RouteRegistry{TData} 泛型资产，
+    /// 当前实现采用单一非泛型 RouteRegistry + TypedInterceptorGroup 分组。
+    /// 理由：（1）减少资产数量，降低维护成本；
+    /// （2）编辑器工具可在单个资产中管理所有类型的拦截器配置；
+    /// （3）加载时通过 Type.FullName 匹配，与泛型方案效果等价。
+    /// 路由定义表由 RouteCore 统一管理，此处不存储路由定义。
     /// </summary>
     [CreateAssetMenu(
         menuName = "Route Navigator/Registry",
@@ -57,6 +63,8 @@ namespace Kogane.RouteNavigator
         /// </summary>
         public TypedInterceptorGroup GetGroup(string typeFullName)
         {
+            if (string.IsNullOrEmpty(typeFullName)) return null;
+
             for (var i = 0; i < typedGroups.Count; i++)
             {
                 if (typedGroups[i] != null &&
@@ -83,7 +91,7 @@ namespace Kogane.RouteNavigator
         }
 
         /// <summary>
-        /// 加载持久化的类型专属拦截器配置并恢复。
+        /// 从持久化配置加载指定 TData 类型的拦截器实例列表。
         /// </summary>
         internal List<INavigationInterceptor<TData>> LoadTypedInterceptors<TData>()
             where TData : struct
@@ -92,15 +100,15 @@ namespace Kogane.RouteNavigator
             var group = GetGroup<TData>();
             if (group == null) return result;
 
-            for (var i = 0; i < group.interceptors.Count; i++)
+            var configs = group.Interceptors;
+            for (var i = 0; i < configs.Count; i++)
             {
-                var config = group.interceptors[i];
+                var config = configs[i];
                 if (config == null || !config.Enabled) continue;
 
                 var interceptor = config.CreateTypedInstance<TData>();
                 if (interceptor != null)
                 {
-                    // 应用 orderOverride
                     if (config.HasOrderOverride)
                     {
                         result.Add(new TypedOrderedInterceptorWrapper<TData>(

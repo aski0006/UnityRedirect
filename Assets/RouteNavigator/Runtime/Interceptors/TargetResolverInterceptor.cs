@@ -5,15 +5,9 @@ using UnityEngine.SceneManagement;
 
 namespace Kogane.RouteNavigator
 {
-    /// <summary>
-    /// 目标解析拦截器。
-    /// 负责根据 RouteDefinition 查找/加载目标 GameObject，
-    /// 通知 IRouteTarget{TData} 并启动后处理协程。
-    /// </summary>
     public sealed class TargetResolverInterceptor<TData> : INavigationInterceptor<TData>
         where TData : struct
-{
-        /// <summary>在通用检查和条件拦截器之后执行</summary>
+    {
         public int Order => InterceptorOrders.ResolveTarget;
 
         public IEnumerator OnNavigate(NavigationContext<TData> context)
@@ -69,7 +63,6 @@ namespace Kogane.RouteNavigator
             {
                 routeTarget.OnNavigateTo(context.Data);
 
-                // 目标自身作为 MonoBehaviour 启动后处理协程
                 if (routeTarget is MonoBehaviour mb)
                 {
                     mb.StartCoroutine(PostProcessWrapper(routeTarget, context.Data, myVersion));
@@ -103,10 +96,11 @@ namespace Kogane.RouteNavigator
 
             while (!operation.isDone)
             {
-                // 检查版本号（新导航已发起）
                 if (RouteNavigator<TData>.CurrentVersion != version)
                 {
-                    operation.allowSceneActivation = true; // 允许加载完成但不主动激活
+                    // 新导航已发起，放弃本次操作。
+                    // 不设置 allowSceneActivation，让加载停留在 90% 但不激活。
+                    // 该场景资源后续会被 GC 回收或被子场景加载覆盖。
                     context.Cancel = true;
                     context.Result = NavigationResult.Cancelled();
                     yield break;
@@ -120,7 +114,6 @@ namespace Kogane.RouteNavigator
                 yield return null;
             }
 
-            // 获取场景根物体
             var scene = SceneManager.GetSceneByPath(scenePath);
             if (!scene.IsValid() || !scene.isLoaded)
             {
@@ -188,7 +181,6 @@ namespace Kogane.RouteNavigator
             TData data,
             int version)
         {
-            // 延迟一帧让管道优先完成
             yield return null;
 
             try
@@ -199,7 +191,6 @@ namespace Kogane.RouteNavigator
             {
                 Debug.LogError(
                     $"[Route] 后处理异常 [{target.GetType().Name}]: {e.Message}");
-                // 后处理失败不会回滚导航成功状态
             }
         }
     }

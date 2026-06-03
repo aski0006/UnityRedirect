@@ -201,14 +201,26 @@ namespace Kogane.RouteNavigator
         /// <summary>
         /// 刷新持久化配置（编辑器保存配置后调用）。
         /// </summary>
-        internal static void ReloadPersistence()
+        /// <summary>
+    /// 刷新持久化配置（编辑器保存配置后调用）。
+    /// 注意：此操作会丢弃当前持有的所有类型专属拦截器（包括运行时通过 RegisterInterceptor
+    /// 动态注册的），然后从 RouteRegistry 资产重新加载。如果需要在编辑器中保留运行时注册的
+    /// 拦截器，请先将它们写入 RouteRegistry 资产。
+    /// </summary>
+    internal static void ReloadPersistence()
+    {
+        lock (_lock)
         {
-            lock (_lock)
-            {
-                // 清除旧配置（保留运行时注册的拦截器）
-                _typedInterceptors.RemoveAll(i => !IsRuntimeRegistered(i));
-                _persistenceLoaded = false;
-            }
+            _typedInterceptors.RemoveAll(i => !IsRuntimeRegistered(i));
+            _persistenceLoaded = false;
+        }
+        LoadPersistence();
+
+        lock (_lock)
+        {
+            _typedInterceptors.Sort((a, b) => a.Order.CompareTo(b.Order));
+        }
+    }
             LoadPersistence();
 
             lock (_lock)
