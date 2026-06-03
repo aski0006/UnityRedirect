@@ -9,17 +9,17 @@ namespace Kogane.RouteNavigator
     public sealed class NavigationResultEventArgs : EventArgs
     {
         /// <summary>路由标识</summary>
-        public string RouteId { get; init; }
+        public string RouteId { get; set; }
 
         /// <summary>
         /// 路由参数（值类型会装箱，仅用于埋点/调试）。
         /// </summary>
-        public object Data { get; init; }
+        public object Data { get; set; }
 
         /// <summary>导航结果</summary>
-        public NavigationResult Result { get; init; }
+        public NavigationResult Result { get; set; }
 
         /// <summary>导航完成时的时间戳（毫秒）</summary>
-        public long TimestampMs { get; init; }
+        public long TimestampMs { get; set; }
     }
 }
