@@ -1,0 +1,219 @@
+/* ── Window Root ── */
+.window-root {
+    flex-grow: 1;
+    flex-direction: column;
+    background-color: rgb(56, 56, 56);
+    color: rgb(200, 200, 200);
+    font-size: 11px;
+}
+
+/* ── Toolbar ── */
+.toolbar {
+    flex-direction: row;
+    height: 28px;
+    background-color: rgb(48, 48, 48);
+    border-bottom-color: rgb(38, 38, 38);
+    border-bottom-width: 1px;
+    padding-left: 4px;
+    padding-right: 4px;
+}
+
+.toolbar-button {
+    height: 22px;
+    font-size: 11px;
+    padding-left: 8px;
+    padding-right: 8px;
+    margin-top: 3px;
+    margin-right: 2px;
+}
+
+.toolbar-title {
+    font-size: 12px;
+    font-style: bold;
+    -unity-text-align: middle-right;
+    flex-grow: 1;
+    padding-right: 8px;
+    color: rgb(220, 220, 220);
+}
+
+/* ── Main Content ── */
+.main-content {
+    flex-grow: 1;
+    flex-direction: row;
+    overflow: hidden;
+}
+
+/* ── Panels ── */
+.panel {
+    background-color: rgb(56, 56, 56);
+    flex-direction: column;
+}
+
+.panel-left {
+    flex-basis: 250px;
+    min-width: 180px;
+    max-width: 400px;
+}
+
+.panel-center {
+    flex-grow: 1;
+    min-width: 300px;
+    overflow-y: auto;
+}
+
+.panel-right {
+    flex-basis: 300px;
+    min-width: 240px;
+    max-width: 500px;
+}
+
+.panel-header {
+    flex-direction: row;
+    align-items: center;
+    padding: 4px 6px;
+    border-bottom-color: rgb(38, 38, 38);
+    border-bottom-width: 1px;
+    min-height: 24px;
+}
+
+.panel-title {
+    font-size: 12px;
+    font-style: bold;
+    color: rgb(210, 210, 210);
+    flex-grow: 1;
+}
+
+.search-field {
+    flex-grow: 0;
+    width: 140px;
+}
+
+/* ── Route List ── */
+.route-list-view {
+    flex-grow: 1;
+}
+
+.empty-hint {
+    padding: 12px;
+    color: rgb(120, 120, 120);
+    -unity-text-align: middle-center;
+    flex-grow: 1;
+}
+
+/* ── Resizer ── */
+.resizer {
+    width: 5px;
+    background-color: rgb(48, 48, 48);
+    cursor: ew-resize;
+}
+
+.resizer:hover {
+    background-color: rgb(68, 68, 68);
+}
+
+/* ── Inspector Sections ── */
+.inspector-section {
+    padding: 6px 8px;
+    border-bottom-color: rgb(46, 46, 46);
+    border-bottom-width: 1px;
+}
+
+.section-label {
+    font-size: 11px;
+    font-style: bold;
+    color: rgb(170, 200, 230);
+    padding-bottom: 4px;
+    margin-bottom: 4px;
+    border-bottom-color: rgb(66, 66, 66);
+    border-bottom-width: 1px;
+}
+
+.inspector-field {
+    margin-bottom: 2px;
+}
+
+.dropdown-container {
+    margin-bottom: 4px;
+}
+
+.danger-button {
+    background-color: rgb(140, 50, 50);
+    color: white;
+    font-size: 11px;
+    height: 20px;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.danger-button:hover {
+    background-color: rgb(170, 60, 60);
+}
+
+/* ── Tags ── */
+.tags-container {
+    flex-direction: row;
+    flex-wrap: wrap;
+}
+
+/* ── Tab Bar ── */
+.panel-tabs {
+    flex-direction: row;
+    height: 24px;
+    background-color: rgb(48, 48, 48);
+}
+
+.tab-button {
+    height: 22px;
+    font-size: 11px;
+    padding-left: 10px;
+    padding-right: 10px;
+    border-left-color: transparent;
+    border-right-color: transparent;
+    border-top-color: transparent;
+    border-bottom-color: transparent;
+    background-color: transparent;
+}
+
+.tab-button:hover {
+    background-color: rgb(66, 66, 66);
+}
+
+.tab-active {
+    background-color: rgb(56, 56, 56);
+    border-bottom-color: rgb(80, 140, 200);
+    border-bottom-width: 2px;
+    color: rgb(200, 220, 240);
+}
+
+.tab-content {
+    flex-grow: 1;
+    flex-direction: column;
+    overflow-y: auto;
+}
+
+/* ── Interceptor List ── */
+.interceptor-list {
+    flex-grow: 1;
+    min-height: 80px;
+    max-height: 200px;
+}
+
+.add-button {
+    height: 22px;
+    font-size: 11px;
+    background-color: rgb(60, 80, 60);
+    color: rgb(180, 210, 180);
+    padding-left: 8px;
+    padding-right: 8px;
+    margin: 4px 8px;
+}
+
+.add-button:hover {
+    background-color: rgb(70, 100, 70);
+}
+
+/* ── Graph Content ── */
+#graph-content {
+    align-items: center;
+    justify-content: center;
+}
