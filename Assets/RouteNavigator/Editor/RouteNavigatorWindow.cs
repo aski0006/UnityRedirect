@@ -82,9 +82,9 @@ namespace Kogane.RouteNavigator.Editor
             }
 
             // ── Toolbar ──
-            root.Q<ToolbarButton>("refresh-button").clicked += OnRefresh;
-            root.Q<ToolbarButton>("create-route-button").clicked += OnCreateRoute;
-            root.Q<ToolbarButton>("open-folder-button").clicked += OnOpenFolder;
+            root.Q<ToolbarButton>("refresh-button")?.clicked += OnRefresh;
+            root.Q<ToolbarButton>("create-route-button")?.clicked += OnCreateRoute;
+            root.Q<ToolbarButton>("open-folder-button")?.clicked += OnOpenFolder;
 
             // ── Panels ──
             var listView = root.Q<ListView>("route-list-view");
@@ -101,8 +101,8 @@ namespace Kogane.RouteNavigator.Editor
             _tabPipeline = root.Q<ToolbarButton>("tab-pipeline");
             _tabGraph = root.Q<ToolbarButton>("tab-graph");
 
-            _tabPipeline.clicked += () => SwitchTab(true);
-            _tabGraph.clicked += () => SwitchTab(false);
+            _tabPipeline?.clicked += () => SwitchTab(true);
+            _tabGraph?.clicked += () => SwitchTab(false);
 
             // ── Refresh UI ──
             _routeListPanel.SetRoutes(_allRoutes);
@@ -212,3 +212,4 @@ namespace Kogane.RouteNavigator.Editor
         }
     }
 }
+
