@@ -27,7 +27,7 @@ namespace Kogane.RouteNavigator
             {
                 if (_instance == null)
                 {
-                    _instance = Resources.Load<RouteCore>("RouteCore");
+                    _instance = Resources.Load<RouteCore>("RouteNavigatorDatabase/RouteCore");
                     if (_instance != null)
                     {
                         _instance.RebuildGlobalInterceptors();
@@ -72,7 +72,7 @@ namespace Kogane.RouteNavigator
             // 触发静态构造器和单例加载
             if (_instance == null)
             {
-                _instance = Resources.Load<RouteCore>("RouteCore");
+                _instance = Resources.Load<RouteCore>("RouteNavigatorDatabase/RouteCore");
                 if (_instance != null)
                 {
                     _instance.RebuildGlobalInterceptors();
@@ -204,3 +204,4 @@ namespace Kogane.RouteNavigator
         }
     }
 }
+

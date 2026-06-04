@@ -1,24 +1,24 @@
 <ui:UXML
     xmlns:ui="UnityEngine.UIElements"
     xmlns:uie="UnityEditor.UIElements"
-    xmlns:engine="UnityEngine.UIElements"
 >
     <ui:VisualElement class="window-root">
         <!-- Toolbar -->
         <uie:Toolbar class="toolbar">
             <uie:ToolbarButton text="Refresh" name="refresh-button" class="toolbar-button" />
             <uie:ToolbarButton text="Create Route" name="create-route-button" class="toolbar-button" />
-            <uie:ToolbarButton text="Open Folder" name="open-folder-button" class="toolbar-button" />
+            <uie:ToolbarButton text="Init Assets" name="init-assets-button" class="toolbar-button" />
             <uie:ToolbarSpacer />
             <ui:Label text="Route Navigator" class="toolbar-title" />
         </uie:Toolbar>
 
-        <!-- Main Content -->
-        <ui:VisualElement class="main-content">
-            <!-- Left Panel: Route List -->
-            <ui:VisualElement class="panel panel-left" name="route-list-panel">
-                <ui:VisualElement class="panel-header">
-                    <ui:Label text="Routes" class="panel-title" />
+        <!-- Three-Column Body -->
+        <ui:VisualElement class="body">
+
+            <!-- Column 1: Route List -->
+            <ui:VisualElement class="column column-left">
+                <ui:VisualElement class="column-header">
+                    <ui:Label text="Routes" class="column-title" />
                     <uie:ToolbarSearchField name="route-search-field" class="search-field" />
                 </ui:VisualElement>
                 <ui:ListView
@@ -31,83 +31,83 @@
                 <ui:Label name="route-list-empty" class="empty-hint" text="No routes defined." />
             </ui:VisualElement>
 
-            <!-- Resizer -->
-            <ui:VisualElement class="resizer" name="left-resizer" />
+            <ui:VisualElement class="divider" />
 
-            <!-- Center Panel: Inspector -->
-            <ui:VisualElement class="panel panel-center" name="inspector-panel">
-                <ui:VisualElement class="panel-header">
-                    <ui:Label text="Route Inspector" class="panel-title" />
-                    <ui:Button text="Delete" name="delete-route-button" class="danger-button" />
-                </ui:VisualElement>
+            <!-- Column 2: Route Inspector -->
+            <ui:VisualElement class="column column-center">
+                <!-- Scrollable inspector content -->
+                <ui:ScrollView class="inspector-scroll">
+                    <ui:VisualElement class="inspector-section">
+                        <ui:Label text="Route Data Type" class="section-label" />
+                        <ui:VisualElement name="type-dropdown-container" class="dropdown-container" />
+                    </ui:VisualElement>
 
-                <!-- Type Selector -->
-                <ui:VisualElement class="inspector-section">
-                    <ui:Label text="Data Type" class="section-label" />
-                    <ui:VisualElement name="type-dropdown-container" class="dropdown-container" />
-                </ui:VisualElement>
+                    <ui:VisualElement class="inspector-section">
+                        <ui:Label text="Basic Info" class="section-label" />
+                        <ui:TextField label="Route ID" name="route-id-field" class="inspector-field" />
+                        <ui:TextField label="Display Name" name="display-name-field" class="inspector-field" />
+                        <ui:TextField label="Description" name="description-field" class="inspector-field" multiline="true" />
+                    </ui:VisualElement>
 
-                <!-- Basic Info -->
-                <ui:VisualElement class="inspector-section">
-                    <ui:Label text="Basic Info" class="section-label" />
-                    <ui:TextField label="Route ID" name="route-id-field" class="inspector-field" />
-                    <ui:TextField label="Display Name" name="display-name-field" class="inspector-field" />
-                    <ui:TextField label="Description" name="description-field" class="inspector-field" multiline="true" />
-                </ui:VisualElement>
+                    <ui:VisualElement class="inspector-section">
+                        <ui:Label text="Target" class="section-label" />
+                        <ui:EnumField label="Target Type" name="target-type-field" class="inspector-field" />
+                        <ui:EnumField label="Load Mode" name="load-mode-field" class="inspector-field" />
+                        <ui:ObjectField label="Scene Asset" name="scene-asset-field" class="inspector-field" type="UnityEditor.SceneAsset, UnityEditor" />
+                        <ui:TextField label="Scene Path" name="scene-path-field" class="inspector-field" />
+                        <ui:ObjectField label="Direct Reference" name="direct-reference-field" class="inspector-field" type="UnityEngine.GameObject, UnityEngine" />
+                        <ui:ObjectField label="Prefab Reference" name="prefab-reference-field" class="inspector-field" type="UnityEngine.GameObject, UnityEngine" />
+                        <ui:Toggle label="Unload Previous" name="unload-previous-toggle" class="inspector-field" />
+                    </ui:VisualElement>
 
-                <!-- Target -->
-                <ui:VisualElement class="inspector-section">
-                    <ui:Label text="Target" class="section-label" />
-                    <uie:EnumField label="Target Type" name="target-type-field" class="inspector-field" />
-                    <uie:EnumField label="Load Mode" name="load-mode-field" class="inspector-field" />
-                    <uie:ObjectField label="Scene Asset" name="scene-asset-field" class="inspector-field" type="UnityEditor.SceneAsset, UnityEditor" />
-                    <ui:TextField label="Scene Path" name="scene-path-field" class="inspector-field" />
-                    <uie:ObjectField label="Direct Reference" name="direct-reference-field" class="inspector-field" type="UnityEngine.GameObject, UnityEngine" />
-                    <uie:ObjectField label="Prefab Reference" name="prefab-reference-field" class="inspector-field" type="UnityEngine.GameObject, UnityEngine" />
-                    <ui:Toggle label="Unload Previous" name="unload-previous-toggle" class="inspector-field" />
-                </ui:VisualElement>
+                    <ui:VisualElement class="inspector-section">
+                        <ui:Label text="Tags" class="section-label" />
+                        <ui:VisualElement name="tags-container" class="tags-container" />
+                    </ui:VisualElement>
+                </ui:ScrollView>
 
-                <!-- Tags -->
-                <ui:VisualElement class="inspector-section">
-                    <ui:Label text="Tags" class="section-label" />
-                    <ui:VisualElement name="tags-container" class="tags-container" />
+                <!-- Bottom toolbar for delete -->
+                <ui:VisualElement class="column-footer">
+                    <ui:Button text="Delete Route" name="delete-route-button" class="danger-button" />
                 </ui:VisualElement>
             </ui:VisualElement>
 
-            <!-- Resizer -->
-            <ui:VisualElement class="resizer" name="center-resizer" />
+            <ui:VisualElement class="divider" />
 
-            <!-- Right Panel: Pipeline / Graph Tabs -->
-            <ui:VisualElement class="panel panel-right" name="pipeline-panel">
+            <!-- Column 3: Pipeline / Graph -->
+            <ui:VisualElement class="column column-right">
                 <uie:Toolbar class="panel-tabs">
                     <uie:ToolbarButton text="Pipeline" name="tab-pipeline" class="tab-button tab-active" />
                     <uie:ToolbarButton text="Graph" name="tab-graph" class="tab-button" />
                 </uie:Toolbar>
 
-                <!-- Pipeline Content -->
                 <ui:VisualElement name="pipeline-content" class="tab-content">
-                    <ui:Label text="Global Interceptors" class="section-label" />
-                    <ui:ListView
-                        name="global-interceptor-list"
-                        class="interceptor-list"
-                        selection-type="Single"
-                    />
-                    <ui:Button text="+ Add Global Interceptor" name="add-global-interceptor-button" class="add-button" />
+                    <ui:VisualElement class="interceptor-group">
+                        <ui:Label text="Global Interceptors" class="section-label" />
+                        <ui:ListView
+                            name="global-interceptor-list"
+                            class="interceptor-list"
+                            selection-type="Single"
+                        />
+                        <uie:ToolbarButton text="+ Add Global" name="add-global-interceptor-button" class="add-button" />
+                    </ui:VisualElement>
 
-                    <ui:Label text="Typed Interceptors" class="section-label" />
-                    <ui:ListView
-                        name="typed-interceptor-list"
-                        class="interceptor-list"
-                        selection-type="Single"
-                    />
-                    <ui:Button text="+ Add Typed Interceptor" name="add-typed-interceptor-button" class="add-button" />
+                    <ui:VisualElement class="interceptor-group">
+                        <ui:Label text="Typed Interceptors" class="section-label" />
+                        <ui:ListView
+                            name="typed-interceptor-list"
+                            class="interceptor-list"
+                            selection-type="Single"
+                        />
+                        <uie:ToolbarButton text="+ Add Typed" name="add-typed-interceptor-button" class="add-button" />
+                    </ui:VisualElement>
                 </ui:VisualElement>
 
-                <!-- Graph Content -->
-                <ui:VisualElement name="graph-content" class="tab-content" style="display: none;">
-                    <ui:Label text="Route Graph (coming soon)" class="empty-hint" />
+                <ui:VisualElement name="graph-content" class="tab-content graph-content" style="display: none;">
+                    <ui:Label text="Route Graph — coming soon" class="empty-hint" />
                 </ui:VisualElement>
             </ui:VisualElement>
+
         </ui:VisualElement>
     </ui:VisualElement>
 </ui:UXML>

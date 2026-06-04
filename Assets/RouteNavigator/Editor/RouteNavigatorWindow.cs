@@ -45,6 +45,7 @@ namespace Kogane.RouteNavigator.Editor
 
         private void OnEnable()
         {
+            RouteNavigatorAssets.EnsureAssetsExist();
             LoadAllRoutes();
             TypeSelector.ClearCache();
             BuildUI();
@@ -86,8 +87,8 @@ namespace Kogane.RouteNavigator.Editor
             if (_refreshBtn != null) _refreshBtn.clicked += OnRefresh;
             var _createBtn = root.Q<ToolbarButton>("create-route-button");
             if (_createBtn != null) _createBtn.clicked += OnCreateRoute;
-            var _openBtn = root.Q<ToolbarButton>("open-folder-button");
-            if (_openBtn != null) _openBtn.clicked += OnOpenFolder;
+            var _initBtn = root.Q<ToolbarButton>("init-assets-button");
+            if (_initBtn != null) _initBtn.clicked += OnInitAssets;
 
             // ── Panels ──
             var listView = root.Q<ListView>("route-list-view");
@@ -217,6 +218,8 @@ namespace Kogane.RouteNavigator.Editor
         }
     }
 }
+
+
 
 
 
