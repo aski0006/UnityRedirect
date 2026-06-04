@@ -177,9 +177,10 @@ namespace Kogane.RouteNavigator.Editor
             _routeListPanel.Refresh();
         }
 
-        private void OnOpenFolder()
+        private void OnInitAssets()
         {
-            EditorUtility.RevealInFinder("Assets/RouteNavigator");
+            RouteNavigatorAssets.EnsureAssetsExist();
+            OnRefresh();
         }
 
         private void OnProjectChanged()
@@ -218,6 +219,7 @@ namespace Kogane.RouteNavigator.Editor
         }
     }
 }
+
 
 
 
