@@ -18,7 +18,7 @@ namespace Kogane.RouteNavigator.Editor
         private readonly Action<RouteDefinition> _onChanged;
 
         // Cache UI references
-        private readonly DropdownField _typeDropdown;
+        private DropdownField _typeDropdown;
         private readonly TextField _routeIdField;
         private readonly TextField _displayNameField;
         private readonly TextField _descriptionField;

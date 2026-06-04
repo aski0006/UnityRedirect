@@ -68,7 +68,10 @@ namespace Kogane.RouteNavigator.Editor
                     {
                         fontSize = 12,
                         color = new StyleColor(new Color(1.0f, 0.5f, 0.5f)),
-                        padding = 12,
+                        paddingLeft = 12,
+                        paddingRight = 12,
+                        paddingTop = 12,
+                        paddingBottom = 12,
                     }
                 });
                 return;
@@ -83,7 +86,10 @@ namespace Kogane.RouteNavigator.Editor
                     {
                         fontSize = 12,
                         color = new StyleColor(new Color(0.6f, 0.6f, 0.6f)),
-                        padding = 12,
+                        paddingLeft = 12,
+                        paddingRight = 12,
+                        paddingTop = 12,
+                        paddingBottom = 12,
                     }
                 });
                 return;
@@ -126,7 +132,7 @@ namespace Kogane.RouteNavigator.Editor
                 style =
                 {
                     fontSize = 12,
-                    fontStyle = new StyleEnum<FontStyle>(FontStyle.Bold),
+                    unityFontStyleAndWeight = new StyleEnum<FontStyle>(FontStyle.Bold),
                     color = Color.white,
                     minWidth = 120,
                     unityTextAlign = TextAnchor.MiddleLeft,
