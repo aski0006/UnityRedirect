@@ -70,6 +70,17 @@ namespace Kogane.RouteNavigator.Editor
 
             var root = visualTree.Instantiate();
             rootVisualElement.Add(root);
+            // Ensure root fills the editor window
+            root.style.flexGrow = 1;
+            root.style.flexShrink = 0;
+            root.style.height = Length.Percent(100);
+
+            // Force body to fill remaining space
+            var bodyEl = root.Q<VisualElement>(null, "body");
+            if (bodyEl != null)
+            {
+                bodyEl.style.flexGrow = 1;
+            }
 
             // Load USS
             var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(UssPath);
@@ -93,7 +104,7 @@ namespace Kogane.RouteNavigator.Editor
             // ── Panels ──
             var listView = root.Q<ListView>("route-list-view");
             var searchField = root.Q<ToolbarSearchField>("route-search-field");
-            _routeListPanel = new RouteListPanel(listView, searchField, OnRouteSelected);
+            _routeListPanel = new RouteListPanel(listView, searchField, OnRouteSelected, OnRouteRenamed);
 
             _inspectorPanel = new RouteInspectorPanel(root, OnRouteUpdated);
 
@@ -150,14 +161,14 @@ namespace Kogane.RouteNavigator.Editor
             route.name = "NewRouteDefinition";
             _allRoutes.Add(route);
 
-            // Save to disk
-            var dir = "Assets/RouteNavigator/Resources";
-            if (!Directory.Exists(dir))
+            // Save to Defines subfolder under RouteNavigatorDatabase
+            const string definesDir = "Assets/Resources/RouteNavigatorDatabase/Defines";
+            if (!Directory.Exists(definesDir))
             {
-                Directory.CreateDirectory(dir);
+                Directory.CreateDirectory(definesDir);
             }
 
-            var path = AssetDatabase.GenerateUniqueAssetPath($"{dir}/RouteDefinition.asset");
+            var path = AssetDatabase.GenerateUniqueAssetPath(definesDir + "/RouteDefinition.asset");
             AssetDatabase.CreateAsset(route, path);
             AssetDatabase.SaveAssets();
 
@@ -201,6 +212,27 @@ namespace Kogane.RouteNavigator.Editor
                 .Where(r => r != null)
                 .OrderBy(r => r.name)
                 .ToList();
+        }
+
+
+        private void OnRouteRenamed(RouteDefinition route, string newName)
+        {
+            if (route == null || string.IsNullOrEmpty(newName)) return;
+
+            var assetPath = AssetDatabase.GetAssetPath(route);
+            if (string.IsNullOrEmpty(assetPath))
+            {
+                Debug.LogError($"[RouteNavigator] Cannot find asset path for route: {route.name}");
+                return;
+            }
+
+            AssetDatabase.RenameAsset(assetPath, newName);
+            AssetDatabase.SaveAssets();
+
+            // Refresh UI
+            _routeListPanel.Refresh();
+            _routeListPanel.SetRoutes(_allRoutes);
+            _routeListPanel.SelectRoute(route);
         }
 
         private void SaveAllRoutes()

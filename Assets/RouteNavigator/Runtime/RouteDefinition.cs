@@ -7,6 +7,7 @@ namespace Kogane.RouteNavigator
 {
     public enum RouteTargetType
     {
+        None = 0,
         Scene,
         GameObjectInScene,
         Prefab,

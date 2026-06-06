@@ -26,10 +26,18 @@ namespace Kogane.RouteNavigator.Editor
         {
             var created = false;
 
-            // Create folder
+            // Create database folder
             if (!Directory.Exists(DatabaseFolder))
             {
                 Directory.CreateDirectory(DatabaseFolder);
+                AssetDatabase.Refresh();
+            }
+
+            // Create Defines subfolder for RouteDefinition assets
+            var definesDir = DatabaseFolder + "/Defines";
+            if (!Directory.Exists(definesDir))
+            {
+                Directory.CreateDirectory(definesDir);
                 AssetDatabase.Refresh();
             }
 
@@ -66,7 +74,6 @@ namespace Kogane.RouteNavigator.Editor
         [InitializeOnLoadMethod]
         private static void AutoInitialize()
         {
-            // Delay to ensure project is fully loaded
             EditorApplication.delayCall += () =>
             {
                 if (!EditorApplication.isPlayingOrWillChangePlaymode)

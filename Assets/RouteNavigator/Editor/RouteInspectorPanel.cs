@@ -48,7 +48,9 @@ namespace Kogane.RouteNavigator.Editor
             _displayNameField = root.Q<TextField>("display-name-field");
             _descriptionField = root.Q<TextField>("description-field");
             _targetTypeField = root.Q<EnumField>("target-type-field");
+            _targetTypeField.Init(RouteTargetType.None);
             _loadModeField = root.Q<EnumField>("load-mode-field");
+            _loadModeField.Init(LoadMode.Activate);
             _sceneAssetField = root.Q<ObjectField>("scene-asset-field");
             _scenePathField = root.Q<TextField>("scene-path-field");
             _directRefField = root.Q<ObjectField>("direct-reference-field");
@@ -125,9 +127,10 @@ namespace Kogane.RouteNavigator.Editor
                 var prop = so.FindProperty("targetType");
                 if (prop != null)
                 {
-                    prop.enumValueIndex = (int)(RouteTargetType)evt.newValue;
+                    var newValue = (RouteTargetType)evt.newValue;
+                    prop.enumValueIndex = (int)newValue;
                     so.ApplyModifiedProperties();
-                    UpdateTargetVisibility((RouteTargetType)evt.newValue);
+                    UpdateTargetVisibility(newValue);
                     NotifyChanged();
                 }
             });
@@ -262,18 +265,14 @@ namespace Kogane.RouteNavigator.Editor
 
         private void UpdateTargetVisibility(RouteTargetType targetType)
         {
-            _sceneAssetField.style.display = targetType == RouteTargetType.Scene
-                ? DisplayStyle.Flex
-                : DisplayStyle.None;
-            _scenePathField.style.display = targetType == RouteTargetType.Scene
-                ? DisplayStyle.Flex
-                : DisplayStyle.None;
-            _directRefField.style.display = targetType == RouteTargetType.GameObjectInScene
-                ? DisplayStyle.Flex
-                : DisplayStyle.None;
-            _prefabField.style.display = targetType == RouteTargetType.Prefab
-                ? DisplayStyle.Flex
-                : DisplayStyle.None;
+            var showScene = targetType == RouteTargetType.Scene;
+            var showDirect = targetType == RouteTargetType.GameObjectInScene;
+            var showPrefab = targetType == RouteTargetType.Prefab;
+
+            _sceneAssetField.style.display = showScene ? DisplayStyle.Flex : DisplayStyle.None;
+            _scenePathField.style.display = showScene ? DisplayStyle.Flex : DisplayStyle.None;
+            _directRefField.style.display = showDirect ? DisplayStyle.Flex : DisplayStyle.None;
+            _prefabField.style.display = showPrefab ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         private void NotifyChanged()
@@ -353,7 +352,7 @@ namespace Kogane.RouteNavigator.Editor
             _routeIdField.value = string.Empty;
             _displayNameField.value = string.Empty;
             _descriptionField.value = string.Empty;
-            _targetTypeField.value = RouteTargetType.Scene;
+            _targetTypeField.value = RouteTargetType.None;
             _loadModeField.value = LoadMode.Activate;
             _sceneAssetField.value = null;
             _scenePathField.value = string.Empty;
@@ -366,7 +365,7 @@ namespace Kogane.RouteNavigator.Editor
                 style = { color = new StyleColor(new Color(0.5f, 0.5f, 0.5f)), fontSize = 10 }
             });
 
-            UpdateTargetVisibility(RouteTargetType.Scene);
+            UpdateTargetVisibility(RouteTargetType.None);
         }
     }
 }

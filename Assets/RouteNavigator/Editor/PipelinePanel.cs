@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 using UnityEditor;
 using UnityEditor.UIElements;
 using UnityEngine;
@@ -249,50 +250,136 @@ namespace Kogane.RouteNavigator.Editor
 
         private void AddInterceptor(string typeName, bool isGlobal)
         {
-            var config = new InterceptorConfig();
-            // We'd need reflection to set the private fields.
-            // For a production tool, we'd use SerializedProperty on RouteCore/Registry.
-            // For now, store via RouteCore's serialized list.
-
-            var list = isGlobal ? _globalConfigs : _typedConfigs;
-
-            // Use serialization workaround: we know the field name in InterceptorConfig
-            var configSo = new SerializedObject(_currentRoute); // placeholder
-            // In practice, InterceptorConfig would be managed via RouteCore asset.
-
-            // Since InterceptorConfig fields are private with [SerializeField],
-            // we can create via SerializedProperty on RouteCore or registry asset.
-            // For now, use a direct approach compatible with existing serialization.
-
-            var type = System.Type.GetType(typeName);
-            if (type == null) return;
-
-            // Create config via ScriptableObject serialization context
-            var core = RouteCore.Instance;
-            if (core != null && isGlobal)
+            // Resolve the type — typeName comes from FindInterceptorTypes as FullName
+            // We need AssemblyQualifiedName for proper serialization
+            Type resolvedType = null;
+            foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
-                var so = new SerializedObject(core);
-                var configsProp = so.FindProperty("globalInterceptorConfigs");
-                if (configsProp != null)
-                {
-                    configsProp.InsertArrayElementAtIndex(configsProp.arraySize);
-                    var newConfig = configsProp.GetArrayElementAtIndex(configsProp.arraySize - 1);
-                    var typeNameProp = newConfig.FindPropertyRelative("typeName");
-                    if (typeNameProp != null)
-                    {
-                        typeNameProp.stringValue = typeName;
-                    }
-                    var enabledProp = newConfig.FindPropertyRelative("enabled");
-                    if (enabledProp != null)
-                    {
-                        enabledProp.boolValue = true;
-                    }
-                    so.ApplyModifiedProperties();
-                    EditorUtility.SetDirty(core);
-                }
+                if (asm.IsDynamic) continue;
+                resolvedType = asm.GetType(typeName);
+                if (resolvedType != null) break;
+            }
+            if (resolvedType == null)
+            {
+                Debug.LogWarning($"[RouteNavigator] Cannot resolve interceptor type: {typeName}");
+                return;
+            }
+
+            var qualifiedName = resolvedType.AssemblyQualifiedName;
+
+            if (isGlobal)
+            {
+                AddGlobalInterceptor(qualifiedName);
+            }
+            else
+            {
+                AddTypedInterceptor(resolvedType, qualifiedName);
             }
 
             Refresh();
+        }
+
+        private void AddGlobalInterceptor(string qualifiedName)
+        {
+            var core = RouteCore.Instance;
+            if (core == null)
+            {
+                Debug.LogWarning("[RouteNavigator] RouteCore not found. Please init assets first.");
+                return;
+            }
+
+            var so = new SerializedObject(core);
+            var configsProp = so.FindProperty("globalInterceptorConfigs");
+            if (configsProp == null)
+            {
+                Debug.LogWarning("[RouteNavigator] Cannot find globalInterceptorConfigs on RouteCore. Check field name.");
+                return;
+            }
+
+            configsProp.InsertArrayElementAtIndex(configsProp.arraySize);
+            var newConfig = configsProp.GetArrayElementAtIndex(configsProp.arraySize - 1);
+            var typeNameProp = newConfig.FindPropertyRelative("typeName");
+            if (typeNameProp != null) typeNameProp.stringValue = qualifiedName;
+            var enabledProp = newConfig.FindPropertyRelative("enabled");
+            if (enabledProp != null) enabledProp.boolValue = true;
+            so.ApplyModifiedProperties();
+            EditorUtility.SetDirty(core);
+
+            // Reload configs from serialized data
+            ReloadGlobalConfigs();
+        }
+
+        private void AddTypedInterceptor(Type interceptorType, string qualifiedName)
+        {
+            // Find the TData from INavigationInterceptor<TData>
+            Type dataType = null;
+            foreach (var iface in interceptorType.GetInterfaces())
+            {
+                if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(INavigationInterceptor<>))
+                {
+                    dataType = iface.GetGenericArguments()[0];
+                    break;
+                }
+            }
+
+            if (dataType == null)
+            {
+                Debug.LogWarning("[RouteNavigator] Cannot determine TData for typed interceptor. " +
+                        "The type must implement INavigationInterceptor<TData>.");
+                return;
+            }
+
+            // Find or create RouteRegistry
+            var registry = Resources.Load<RouteRegistry>("RouteNavigatorDatabase/RouteRegistry");
+            if (registry == null)
+            {
+                Debug.LogWarning("[RouteNavigator] RouteRegistry not found. Please init assets first.");
+                return;
+            }
+
+            var so = new SerializedObject(registry);
+            var groupsProp = so.FindProperty("typedGroups");
+            if (groupsProp == null) return;
+
+            // Find or create group for this dataType
+            var groupIndex = -1;
+            var dataTypeFullName = dataType.FullName;
+            for (var i = 0; i < groupsProp.arraySize; i++)
+            {
+                var elem = groupsProp.GetArrayElementAtIndex(i);
+                if (elem.FindPropertyRelative("dataTypeFullName")?.stringValue == dataTypeFullName)
+                {
+                    groupIndex = i;
+                    break;
+                }
+            }
+
+            if (groupIndex < 0)
+            {
+                // Create new group
+                groupsProp.InsertArrayElementAtIndex(groupsProp.arraySize);
+                groupIndex = groupsProp.arraySize - 1;
+                var newGroup = groupsProp.GetArrayElementAtIndex(groupIndex);
+                var nameProp = newGroup.FindPropertyRelative("dataTypeFullName");
+                if (nameProp != null) nameProp.stringValue = dataTypeFullName;
+            }
+
+            // Add interceptor config to the group
+            var group = groupsProp.GetArrayElementAtIndex(groupIndex);
+            var interceptorListProp = group.FindPropertyRelative("interceptors");
+            if (interceptorListProp == null) return;
+
+            interceptorListProp.InsertArrayElementAtIndex(interceptorListProp.arraySize);
+            var config = interceptorListProp.GetArrayElementAtIndex(interceptorListProp.arraySize - 1);
+            var typeProp = config.FindPropertyRelative("typeName");
+            if (typeProp != null) typeProp.stringValue = qualifiedName;
+            var enabledProp = config.FindPropertyRelative("enabled");
+            if (enabledProp != null) enabledProp.boolValue = true;
+            so.ApplyModifiedProperties();
+            EditorUtility.SetDirty(registry);
+
+            // Reload configs from serialized data
+            ReloadTypedConfigs();
         }
 
         private void SaveInterceptorConfigs()
@@ -310,28 +397,73 @@ namespace Kogane.RouteNavigator.Editor
         {
             _currentRoute = route;
 
-            // Load global configs from RouteCore
-            var core = RouteCore.Instance;
-            if (core != null)
-            {
-                var so = new SerializedObject(core);
-                var configsProp = so.FindProperty("globalInterceptorConfigs");
-                _globalConfigs.Clear();
-                if (configsProp != null)
-                {
-                    for (var i = 0; i < configsProp.arraySize; i++)
-                    {
-                        var configElement = configsProp.GetArrayElementAtIndex(i);
-                        var typeName = configElement.FindPropertyRelative("typeName")?.stringValue;
-                        var enabled = configElement.FindPropertyRelative("enabled")?.boolValue ?? true;
-
-                        // Reconstruct InterceptorConfig for display
-                        // This is a simplified approach; real implementation would use EditorGUILayout
-                    }
-                }
-            }
+            ReloadGlobalConfigs();
+            ReloadTypedConfigs();
 
             Refresh();
+        }
+
+        private void ReloadGlobalConfigs()
+        {
+            var core = RouteCore.Instance;
+            _globalConfigs.Clear();
+            if (core == null) return;
+
+            var so = new SerializedObject(core);
+            var configsProp = so.FindProperty("globalInterceptorConfigs");
+            if (configsProp == null) return;
+
+            for (var i = 0; i < configsProp.arraySize; i++)
+            {
+                var configElement = configsProp.GetArrayElementAtIndex(i);
+                var typeName = configElement.FindPropertyRelative("typeName")?.stringValue ?? string.Empty;
+                var enabled = configElement.FindPropertyRelative("enabled")?.boolValue ?? true;
+                var orderOverride = configElement.FindPropertyRelative("orderOverride")?.intValue ?? 0;
+
+                var config = new InterceptorConfig();
+                SetInterceptorConfigFields(config, typeName, enabled, orderOverride);
+                _globalConfigs.Add(config);
+            }
+        }
+
+        private void ReloadTypedConfigs()
+        {
+            var registry = Resources.Load<RouteRegistry>("RouteNavigatorDatabase/RouteRegistry");
+            _typedConfigs.Clear();
+            if (registry == null) return;
+
+            var so = new SerializedObject(registry);
+            var groupsProp = so.FindProperty("typedGroups");
+            if (groupsProp == null) return;
+
+            // Flatten all interceptor configs from all groups for display
+            for (var g = 0; g < groupsProp.arraySize; g++)
+            {
+                var group = groupsProp.GetArrayElementAtIndex(g);
+                var dataTypeName = group.FindPropertyRelative("dataTypeFullName")?.stringValue;
+                var interceptorListProp = group.FindPropertyRelative("interceptors");
+                if (interceptorListProp == null) continue;
+
+                for (var i = 0; i < interceptorListProp.arraySize; i++)
+                {
+                    var configElement = interceptorListProp.GetArrayElementAtIndex(i);
+                    var typeName = configElement.FindPropertyRelative("typeName")?.stringValue ?? string.Empty;
+                    var enabled = configElement.FindPropertyRelative("enabled")?.boolValue ?? true;
+                    var orderOverride = configElement.FindPropertyRelative("orderOverride")?.intValue ?? 0;
+
+                    var config = new InterceptorConfig();
+                    SetInterceptorConfigFields(config, typeName, enabled, orderOverride);
+                    _typedConfigs.Add(config);
+                }
+            }
+        }
+
+        private static void SetInterceptorConfigFields(InterceptorConfig config, string typeName, bool enabled, int orderOverride)
+        {
+            var type = typeof(InterceptorConfig);
+            type.GetField("typeName", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(config, typeName);
+            type.GetField("enabled", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(config, enabled);
+            type.GetField("orderOverride", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(config, orderOverride);
         }
 
         private void Refresh()
