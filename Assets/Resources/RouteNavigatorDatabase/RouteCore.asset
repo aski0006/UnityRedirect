@@ -13,12 +13,4 @@ MonoBehaviour:
   m_Name: RouteCore
   m_EditorClassIdentifier: 
   routes: []
-  globalInterceptorConfigs:
-  - typeName: Kogane.RouteNavigator.LoggingInterceptor, Assembly-CSharp, Version=0.0.0.0,
-      Culture=neutral, PublicKeyToken=null
-    enabled: 1
-    orderOverride: 0
-  - typeName: Kogane.RouteNavigator.LoggingInterceptor, Assembly-CSharp, Version=0.0.0.0,
-      Culture=neutral, PublicKeyToken=null
-    enabled: 1
-    orderOverride: 0
+  globalInterceptorConfigs: []

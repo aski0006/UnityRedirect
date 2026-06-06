@@ -11,69 +11,74 @@ namespace Kogane.RouteNavigator.Editor
 {
     /// <summary>
     /// 管道/拦截器链管理面板。
-    /// 右侧面板：管理通用拦截器和类型专属拦截器的配置。
+    /// 统一列表：所有拦截器（global + typed）在单一可拖拽列表中管理，
+    /// 以 [global] / [typed] 前缀和颜色区分类型。
     /// </summary>
     public class PipelinePanel
     {
         private readonly VisualElement _root;
-
-        private readonly ListView _globalInterceptorList;
-        private readonly ListView _typedInterceptorList;
-        private readonly Button _addGlobalButton;
-        private readonly Button _addTypedButton;
+        private readonly ListView _unifiedList;
+        private readonly Button _addButton;
 
         private RouteDefinition _currentRoute;
-        private List<InterceptorConfig> _globalConfigs = new();
-        private List<InterceptorConfig> _typedConfigs = new();
-        private int _globalSelectionIndex = -1;
-        private int _typedSelectionIndex = -1;
+        private readonly List<UnifiedEntry> _unifiedConfigs = new();
+
+        /// <summary>
+        /// 统一拦截器条目 — 同时承载 global 与 typed 拦截器。
+        /// </summary>
+        private sealed class UnifiedEntry
+        {
+            /// <summary>拦截器完整类型名（AssemblyQualifiedName）</summary>
+            public string TypeName;
+            /// <summary>是否启用</summary>
+            public bool Enabled = true;
+            /// <summary>Order 覆盖值（0 = 使用代码中的 Order）</summary>
+            public int OrderOverride;
+            /// <summary>true = global, false = typed</summary>
+            public bool IsGlobal;
+            /// <summary>TData 类型全名（typed 专属，global 为 null）</summary>
+            public string DataTypeFullName;
+
+            /// <summary>显示在列表中的短名称</summary>
+            public string ShortTypeName
+            {
+                get
+                {
+                    if (string.IsNullOrEmpty(TypeName)) return "(unknown)";
+                    // AssemblyQualifiedName: "Namespace.Type, Assembly, ..."
+                    var commaIdx = TypeName.IndexOf(',');
+                    var fullName = commaIdx >= 0 ? TypeName.Substring(0, commaIdx) : TypeName;
+                    var lastDot = fullName.LastIndexOf('.');
+                    return lastDot >= 0 ? fullName.Substring(lastDot + 1) : fullName;
+                }
+            }
+        }
+
+        // ── Constructor ──
 
         public PipelinePanel(VisualElement root)
         {
             _root = root;
 
-            _globalInterceptorList = root.Q<ListView>("global-interceptor-list");
-            _typedInterceptorList = root.Q<ListView>("typed-interceptor-list");
-            _addGlobalButton = root.Q<Button>("add-global-interceptor-button");
-            _addTypedButton = root.Q<Button>("add-typed-interceptor-button");
+            _unifiedList = root.Q<ListView>("unified-interceptor-list");
+            _addButton = root.Q<Button>("add-interceptor-button");
 
-            ConfigureInterceptorLists();
+            ConfigureInterceptorList();
         }
 
-        private void ConfigureInterceptorLists()
+        private void ConfigureInterceptorList()
         {
-            // ── Global Interceptor List ──
-            _globalInterceptorList.makeItem = () => CreateInterceptorItem();
-            _globalInterceptorList.bindItem = (element, index) =>
-                BindInterceptorItem(element, index, _globalConfigs);
-            _globalInterceptorList.itemsSource = _globalConfigs;
-            _globalInterceptorList.onSelectionChange += sel =>
-            {
-                _globalSelectionIndex = _globalInterceptorList.selectedIndex;
-            };
+            _unifiedList.makeItem = () => CreateInterceptorItem();
+            _unifiedList.bindItem = (element, index) => BindInterceptorItem(element, index);
+            _unifiedList.itemsSource = _unifiedConfigs;
+            _unifiedList.reorderable = true;
 
-            _addGlobalButton.clicked += () =>
-            {
-                ShowAddInterceptorDialog(true);
-            };
-
-            // ── Typed Interceptor List ──
-            _typedInterceptorList.makeItem = () => CreateInterceptorItem();
-            _typedInterceptorList.bindItem = (element, index) =>
-                BindInterceptorItem(element, index, _typedConfigs);
-            _typedInterceptorList.itemsSource = _typedConfigs;
-            _typedInterceptorList.onSelectionChange += sel =>
-            {
-                _typedSelectionIndex = _typedInterceptorList.selectedIndex;
-            };
-
-            _addTypedButton.clicked += () =>
-            {
-                ShowAddInterceptorDialog(false);
-            };
+            _addButton.clicked += () => ShowAddInterceptorDialog();
         }
 
-        private VisualElement CreateInterceptorItem()
+        // ── Item Creation ──
+
+        private static VisualElement CreateInterceptorItem()
         {
             var container = new VisualElement
             {
@@ -85,6 +90,32 @@ namespace Kogane.RouteNavigator.Editor
                     paddingTop = 3,
                     paddingBottom = 3,
                     alignItems = Align.Center,
+                }
+            };
+
+            var dragHandle = new Label
+            {
+                name = "interceptor-drag-handle",
+                text = "≡",
+                style =
+                {
+                    fontSize = 14,
+                    marginRight = 4,
+                    flexGrow = 0,
+                    color = new StyleColor(new Color(0.35f, 0.35f, 0.35f)),
+                    unityTextAlign = TextAnchor.MiddleCenter,
+                }
+            };
+
+            var kindLabel = new Label
+            {
+                name = "interceptor-kind",
+                style =
+                {
+                    fontSize = 10,
+                    marginRight = 4,
+                    flexGrow = 0,
+                    unityTextAlign = TextAnchor.MiddleLeft,
                 }
             };
 
@@ -116,15 +147,23 @@ namespace Kogane.RouteNavigator.Editor
                 style =
                 {
                     fontSize = 12,
-                    width = 18,
-                    height = 18,
+                    width = 20,
+                    height = 20,
                     paddingLeft = 0,
                     paddingRight = 0,
+                    paddingTop = 0,
+                    paddingBottom = 0,
                     backgroundColor = new StyleColor(new Color(0.5f, 0.2f, 0.2f)),
                     color = Color.white,
+                    borderTopLeftRadius = 2,
+                    borderTopRightRadius = 2,
+                    borderBottomLeftRadius = 2,
+                    borderBottomRightRadius = 2,
                 }
             };
 
+            container.Add(dragHandle);
+            container.Add(kindLabel);
             container.Add(toggle);
             container.Add(label);
             container.Add(deleteButton);
@@ -132,84 +171,85 @@ namespace Kogane.RouteNavigator.Editor
             return container;
         }
 
-        private void BindInterceptorItem(VisualElement element, int index, List<InterceptorConfig> configs)
-        {
-            if (index < 0 || index >= configs.Count) return;
+        // ── Item Binding ──
 
-            var config = configs[index];
+        private void BindInterceptorItem(VisualElement element, int index)
+        {
+            if (index < 0 || index >= _unifiedConfigs.Count) return;
+
+            var entry = _unifiedConfigs[index];
+
+            var kindLabel = element.Q<Label>("interceptor-kind");
             var toggle = element.Q<Toggle>("interceptor-toggle");
             var label = element.Q<Label>("interceptor-label");
             var deleteButton = element.Q<Button>("interceptor-delete");
 
+            // Kind badge
+            if (kindLabel != null)
+            {
+                if (entry.IsGlobal)
+                {
+                    kindLabel.text = "[global]";
+                    kindLabel.style.color = new StyleColor(new Color(0.35f, 0.55f, 0.85f));
+                }
+                else
+                {
+                    var typeName = !string.IsNullOrEmpty(entry.DataTypeFullName)
+                        ? entry.DataTypeFullName.Substring(entry.DataTypeFullName.LastIndexOf('.') + 1)
+                        : "?";
+                    kindLabel.text = $"[typed: {typeName}]";
+                    kindLabel.style.color = new StyleColor(new Color(0.35f, 0.75f, 0.45f));
+                }
+            }
+
+            // Toggle
             if (toggle != null)
             {
-                toggle.value = config.Enabled;
-                toggle.RegisterValueChangedCallback(evt =>
-                {
-                    // We'd ideally use SerializedProperty, but for simplicity
-                    // we track changes directly.
-                    SaveInterceptorConfigs();
-                });
+                toggle.SetValueWithoutNotify(entry.Enabled);
+                // Store index for the callback
+                toggle.userData = index;
+                toggle.UnregisterValueChangedCallback(OnToggleChanged);
+                toggle.RegisterValueChangedCallback(OnToggleChanged);
             }
 
+            // Name label
             if (label != null)
             {
-                var typeName = config.TypeName;
-                // Short display name
-                var shortName = typeName;
-                if (!string.IsNullOrEmpty(typeName))
-                {
-                    var lastDot = typeName.LastIndexOf('.');
-                    if (lastDot >= 0) shortName = typeName.Substring(lastDot + 1);
-                }
-
-                label.text = shortName ?? "(unknown)";
-                label.tooltip = typeName;
+                label.text = entry.ShortTypeName;
+                label.tooltip = entry.TypeName;
             }
 
+            // Delete button
             if (deleteButton != null)
             {
-                // Unregister old click events
                 deleteButton.clickable = null;
+                var capturedIndex = index;
                 deleteButton.clicked += () =>
                 {
-                    configs.RemoveAt(index);
-                    SaveInterceptorConfigs();
-                    Refresh();
+                    DeleteInterceptor(capturedIndex);
                 };
             }
         }
 
-        private void ShowAddInterceptorDialog(bool isGlobal)
+        private void OnToggleChanged(ChangeEvent<bool> evt)
+        {
+            var toggle = evt.target as Toggle;
+            if (toggle?.userData is int index && index >= 0 && index < _unifiedConfigs.Count)
+            {
+                _unifiedConfigs[index].Enabled = evt.newValue;
+                SaveUnifiedConfigs();
+            }
+        }
+
+        // ── Add Interceptor ──
+
+        private void ShowAddInterceptorDialog()
         {
             var menu = new GenericMenu();
 
             // Scan for available interceptor types
-            var interceptorTypes = FindInterceptorTypes(isGlobal);
-
-            if (interceptorTypes.Count == 0)
-            {
-                menu.AddDisabledItem(new GUIContent("No interceptors found"));
-            }
-            else
-            {
-                foreach (var type in interceptorTypes)
-                {
-                    var typeName = type.FullName;
-                    var shortName = type.Name;
-                    menu.AddItem(new GUIContent(shortName), false, () =>
-                    {
-                        AddInterceptor(typeName, isGlobal);
-                    });
-                }
-            }
-
-            menu.ShowAsContext();
-        }
-
-        private List<Type> FindInterceptorTypes(bool isGlobal)
-        {
-            var results = new List<Type>();
+            var globalTypes = new List<Type>();
+            var typedTypes = new List<(Type interceptorType, Type dataType)>();
 
             foreach (var assembly in AppDomain.CurrentDomain.GetAssemblies())
             {
@@ -219,259 +259,322 @@ namespace Kogane.RouteNavigator.Editor
                 {
                     foreach (var type in assembly.GetExportedTypes())
                     {
-                        if (type.IsAbstract || type.IsInterface) continue;
-                        if (!type.IsClass) continue;
+                        // 跳过抽象类、接口、值类型、以及开放泛型定义（如 ConditionInterceptor<TData>）
+                        if (type.IsAbstract || type.IsInterface || !type.IsClass || type.IsGenericTypeDefinition) continue;
+
+                        bool isGlobal = typeof(INavigationInterceptorBase).IsAssignableFrom(type);
+
+                        // Check if implements INavigationInterceptor<TData>
+                        Type foundDataType = null;
+                        foreach (var iface in type.GetInterfaces())
+                        {
+                            if (iface.IsGenericType &&
+                                iface.GetGenericTypeDefinition() == typeof(INavigationInterceptor<>))
+                            {
+                                foundDataType = iface.GetGenericArguments()[0];
+                                break;
+                            }
+                        }
 
                         if (isGlobal)
                         {
-                            // Implements INavigationInterceptorBase
-                            if (typeof(INavigationInterceptorBase).IsAssignableFrom(type))
-                            {
-                                results.Add(type);
-                            }
+                            globalTypes.Add(type);
                         }
-                        else
+                        if (foundDataType != null)
                         {
-                            // Implements INavigationInterceptor<TData> (any TData)
-                            if (type.GetInterfaces().Any(i =>
-                                i.IsGenericType &&
-                                i.GetGenericTypeDefinition() == typeof(INavigationInterceptor<>)))
-                            {
-                                results.Add(type);
-                            }
+                            typedTypes.Add((type, foundDataType));
                         }
                     }
                 }
-                catch (System.Reflection.ReflectionTypeLoadException) { }
+                catch (ReflectionTypeLoadException) { }
             }
 
-            return results.OrderBy(t => t.Name).ToList();
+            var totalCount = globalTypes.Count + typedTypes.Count;
+            if (totalCount == 0)
+            {
+                menu.AddDisabledItem(new GUIContent("No interceptors found"));
+            }
+            else
+            {
+                // ── Global section ──
+                if (globalTypes.Count > 0)
+                {
+                    menu.AddDisabledItem(new GUIContent("── Global ──"));
+                    foreach (var type in globalTypes.OrderBy(t => t.Name))
+                    {
+                        var typeName = type.FullName;
+                        var label = $"[global]  {type.Name}";
+                        var capturedTypeName = typeName;
+                        menu.AddItem(new GUIContent(label), false, () =>
+                        {
+                            AddInterceptor(capturedTypeName, isGlobal: true, dataTypeFullName: null);
+                        });
+                    }
+                }
+
+                // ── Typed section ──
+                if (typedTypes.Count > 0)
+                {
+                    if (globalTypes.Count > 0)
+                        menu.AddSeparator("");
+                    menu.AddDisabledItem(new GUIContent("── Typed ──"));
+                    foreach (var (interceptorType, dataType) in typedTypes
+                        .OrderBy(t => t.interceptorType.Name)
+                        .ThenBy(t => t.dataType.Name))
+                    {
+                        var typeName = interceptorType.FullName;
+                        var label = $"[typed: {dataType.Name}]  {interceptorType.Name}";
+                        var capturedTypeName = typeName;
+                        var capturedDataTypeFullName = dataType.FullName;
+                        menu.AddItem(new GUIContent(label), false, () =>
+                        {
+                            AddInterceptor(capturedTypeName, isGlobal: false,
+                                dataTypeFullName: capturedDataTypeFullName);
+                        });
+                    }
+                }
+            }
+
+            menu.ShowAsContext();
         }
 
-        private void AddInterceptor(string typeName, bool isGlobal)
+        private void AddInterceptor(string typeFullName, bool isGlobal, string dataTypeFullName)
         {
-            // Resolve the type — typeName comes from FindInterceptorTypes as FullName
-            // We need AssemblyQualifiedName for proper serialization
+            // Resolve the type to get AssemblyQualifiedName for serialization
             Type resolvedType = null;
             foreach (var asm in AppDomain.CurrentDomain.GetAssemblies())
             {
                 if (asm.IsDynamic) continue;
-                resolvedType = asm.GetType(typeName);
+                resolvedType = asm.GetType(typeFullName);
                 if (resolvedType != null) break;
             }
             if (resolvedType == null)
             {
-                Debug.LogWarning($"[RouteNavigator] Cannot resolve interceptor type: {typeName}");
+                Debug.LogWarning($"[RouteNavigator] Cannot resolve interceptor type: {typeFullName}");
                 return;
             }
 
             var qualifiedName = resolvedType.AssemblyQualifiedName;
 
+            // ── Duplicate check ──
+            // Same type can only exist once in the same context:
+            // - Global: check among all global entries
+            // - Typed: check among typed entries for the same TData type
             if (isGlobal)
             {
-                AddGlobalInterceptor(qualifiedName);
+                var exists = _unifiedConfigs.Any(e =>
+                    e.IsGlobal &&
+                    ExtractComparableTypeName(e.TypeName) == ExtractComparableTypeName(qualifiedName));
+                if (exists)
+                {
+                    Debug.LogWarning($"[RouteNavigator] Global interceptor '{resolvedType.Name}' already exists.");
+                    return;
+                }
             }
             else
             {
-                AddTypedInterceptor(resolvedType, qualifiedName);
+                var exists = _unifiedConfigs.Any(e =>
+                    !e.IsGlobal &&
+                    e.DataTypeFullName == dataTypeFullName &&
+                    ExtractComparableTypeName(e.TypeName) == ExtractComparableTypeName(qualifiedName));
+                if (exists)
+                {
+                    Debug.LogWarning($"[RouteNavigator] Typed interceptor '{resolvedType.Name}' for '{dataTypeFullName}' already exists.");
+                    return;
+                }
             }
 
+            // Add entry
+            var entry = new UnifiedEntry
+            {
+                TypeName = qualifiedName,
+                Enabled = true,
+                OrderOverride = 0,
+                IsGlobal = isGlobal,
+                DataTypeFullName = dataTypeFullName,
+            };
+            _unifiedConfigs.Add(entry);
+
+            SaveUnifiedConfigs();
             Refresh();
         }
 
-        private void AddGlobalInterceptor(string qualifiedName)
+        /// <summary>
+        /// Extract the full type name (without assembly suffix) for comparison.
+        /// "Namespace.Type, Assembly, ..." → "Namespace.Type"
+        /// </summary>
+        private static string ExtractComparableTypeName(string assemblyQualifiedName)
         {
-            var core = RouteCore.Instance;
-            if (core == null)
-            {
-                Debug.LogWarning("[RouteNavigator] RouteCore not found. Please init assets first.");
-                return;
-            }
-
-            var so = new SerializedObject(core);
-            var configsProp = so.FindProperty("globalInterceptorConfigs");
-            if (configsProp == null)
-            {
-                Debug.LogWarning("[RouteNavigator] Cannot find globalInterceptorConfigs on RouteCore. Check field name.");
-                return;
-            }
-
-            configsProp.InsertArrayElementAtIndex(configsProp.arraySize);
-            var newConfig = configsProp.GetArrayElementAtIndex(configsProp.arraySize - 1);
-            var typeNameProp = newConfig.FindPropertyRelative("typeName");
-            if (typeNameProp != null) typeNameProp.stringValue = qualifiedName;
-            var enabledProp = newConfig.FindPropertyRelative("enabled");
-            if (enabledProp != null) enabledProp.boolValue = true;
-            so.ApplyModifiedProperties();
-            EditorUtility.SetDirty(core);
-
-            // Reload configs from serialized data
-            ReloadGlobalConfigs();
+            if (string.IsNullOrEmpty(assemblyQualifiedName)) return string.Empty;
+            var commaIdx = assemblyQualifiedName.IndexOf(',');
+            return commaIdx >= 0 ? assemblyQualifiedName.Substring(0, commaIdx) : assemblyQualifiedName;
         }
 
-        private void AddTypedInterceptor(Type interceptorType, string qualifiedName)
+        // ── Delete Interceptor ──
+
+        private void DeleteInterceptor(int index)
         {
-            // Find the TData from INavigationInterceptor<TData>
-            Type dataType = null;
-            foreach (var iface in interceptorType.GetInterfaces())
-            {
-                if (iface.IsGenericType && iface.GetGenericTypeDefinition() == typeof(INavigationInterceptor<>))
-                {
-                    dataType = iface.GetGenericArguments()[0];
-                    break;
-                }
-            }
+            if (index < 0 || index >= _unifiedConfigs.Count) return;
 
-            if (dataType == null)
-            {
-                Debug.LogWarning("[RouteNavigator] Cannot determine TData for typed interceptor. " +
-                        "The type must implement INavigationInterceptor<TData>.");
-                return;
-            }
-
-            // Find or create RouteRegistry
-            var registry = Resources.Load<RouteRegistry>("RouteNavigatorDatabase/RouteRegistry");
-            if (registry == null)
-            {
-                Debug.LogWarning("[RouteNavigator] RouteRegistry not found. Please init assets first.");
-                return;
-            }
-
-            var so = new SerializedObject(registry);
-            var groupsProp = so.FindProperty("typedGroups");
-            if (groupsProp == null) return;
-
-            // Find or create group for this dataType
-            var groupIndex = -1;
-            var dataTypeFullName = dataType.FullName;
-            for (var i = 0; i < groupsProp.arraySize; i++)
-            {
-                var elem = groupsProp.GetArrayElementAtIndex(i);
-                if (elem.FindPropertyRelative("dataTypeFullName")?.stringValue == dataTypeFullName)
-                {
-                    groupIndex = i;
-                    break;
-                }
-            }
-
-            if (groupIndex < 0)
-            {
-                // Create new group
-                groupsProp.InsertArrayElementAtIndex(groupsProp.arraySize);
-                groupIndex = groupsProp.arraySize - 1;
-                var newGroup = groupsProp.GetArrayElementAtIndex(groupIndex);
-                var nameProp = newGroup.FindPropertyRelative("dataTypeFullName");
-                if (nameProp != null) nameProp.stringValue = dataTypeFullName;
-            }
-
-            // Add interceptor config to the group
-            var group = groupsProp.GetArrayElementAtIndex(groupIndex);
-            var interceptorListProp = group.FindPropertyRelative("interceptors");
-            if (interceptorListProp == null) return;
-
-            interceptorListProp.InsertArrayElementAtIndex(interceptorListProp.arraySize);
-            var config = interceptorListProp.GetArrayElementAtIndex(interceptorListProp.arraySize - 1);
-            var typeProp = config.FindPropertyRelative("typeName");
-            if (typeProp != null) typeProp.stringValue = qualifiedName;
-            var enabledProp = config.FindPropertyRelative("enabled");
-            if (enabledProp != null) enabledProp.boolValue = true;
-            so.ApplyModifiedProperties();
-            EditorUtility.SetDirty(registry);
-
-            // Reload configs from serialized data
-            ReloadTypedConfigs();
+            _unifiedConfigs.RemoveAt(index);
+            SaveUnifiedConfigs();
+            Refresh();
         }
 
-        private void SaveInterceptorConfigs()
-        {
-            var core = RouteCore.Instance;
-            if (core != null)
-            {
-                EditorUtility.SetDirty(core);
-                AssetDatabase.SaveAssets();
-            }
-        }
+        // ── Persistence ──
 
         /// <summary>刷新显示指定路由的拦截器配置</summary>
         public void Display(RouteDefinition route)
         {
             _currentRoute = route;
-
-            ReloadGlobalConfigs();
-            ReloadTypedConfigs();
-
+            ReloadUnifiedConfigs();
             Refresh();
         }
 
-        private void ReloadGlobalConfigs()
+        private void ReloadUnifiedConfigs()
         {
+            _unifiedConfigs.Clear();
+
+            // ── Load global interceptors from RouteCore ──
             var core = RouteCore.Instance;
-            _globalConfigs.Clear();
-            if (core == null) return;
-
-            var so = new SerializedObject(core);
-            var configsProp = so.FindProperty("globalInterceptorConfigs");
-            if (configsProp == null) return;
-
-            for (var i = 0; i < configsProp.arraySize; i++)
+            if (core != null)
             {
-                var configElement = configsProp.GetArrayElementAtIndex(i);
-                var typeName = configElement.FindPropertyRelative("typeName")?.stringValue ?? string.Empty;
-                var enabled = configElement.FindPropertyRelative("enabled")?.boolValue ?? true;
-                var orderOverride = configElement.FindPropertyRelative("orderOverride")?.intValue ?? 0;
-
-                var config = new InterceptorConfig();
-                SetInterceptorConfigFields(config, typeName, enabled, orderOverride);
-                _globalConfigs.Add(config);
-            }
-        }
-
-        private void ReloadTypedConfigs()
-        {
-            var registry = Resources.Load<RouteRegistry>("RouteNavigatorDatabase/RouteRegistry");
-            _typedConfigs.Clear();
-            if (registry == null) return;
-
-            var so = new SerializedObject(registry);
-            var groupsProp = so.FindProperty("typedGroups");
-            if (groupsProp == null) return;
-
-            // Flatten all interceptor configs from all groups for display
-            for (var g = 0; g < groupsProp.arraySize; g++)
-            {
-                var group = groupsProp.GetArrayElementAtIndex(g);
-                var dataTypeName = group.FindPropertyRelative("dataTypeFullName")?.stringValue;
-                var interceptorListProp = group.FindPropertyRelative("interceptors");
-                if (interceptorListProp == null) continue;
-
-                for (var i = 0; i < interceptorListProp.arraySize; i++)
+                var so = new SerializedObject(core);
+                var configsProp = so.FindProperty("globalInterceptorConfigs");
+                if (configsProp != null)
                 {
-                    var configElement = interceptorListProp.GetArrayElementAtIndex(i);
-                    var typeName = configElement.FindPropertyRelative("typeName")?.stringValue ?? string.Empty;
-                    var enabled = configElement.FindPropertyRelative("enabled")?.boolValue ?? true;
-                    var orderOverride = configElement.FindPropertyRelative("orderOverride")?.intValue ?? 0;
+                    for (var i = 0; i < configsProp.arraySize; i++)
+                    {
+                        var elem = configsProp.GetArrayElementAtIndex(i);
+                        _unifiedConfigs.Add(new UnifiedEntry
+                        {
+                            TypeName = elem.FindPropertyRelative("typeName")?.stringValue ?? string.Empty,
+                            Enabled = elem.FindPropertyRelative("enabled")?.boolValue ?? true,
+                            OrderOverride = elem.FindPropertyRelative("orderOverride")?.intValue ?? 0,
+                            IsGlobal = true,
+                            DataTypeFullName = null,
+                        });
+                    }
+                }
+            }
 
-                    var config = new InterceptorConfig();
-                    SetInterceptorConfigFields(config, typeName, enabled, orderOverride);
-                    _typedConfigs.Add(config);
+            // ── Load typed interceptors from RouteRegistry ──
+            var registry = Resources.Load<RouteRegistry>("RouteNavigatorDatabase/RouteRegistry");
+            if (registry != null)
+            {
+                var so = new SerializedObject(registry);
+                var groupsProp = so.FindProperty("typedGroups");
+                if (groupsProp != null)
+                {
+                    for (var g = 0; g < groupsProp.arraySize; g++)
+                    {
+                        var group = groupsProp.GetArrayElementAtIndex(g);
+                        var dataTypeFullName = group.FindPropertyRelative("dataTypeFullName")?.stringValue;
+                        var interceptorListProp = group.FindPropertyRelative("interceptors");
+                        if (interceptorListProp == null) continue;
+
+                        for (var i = 0; i < interceptorListProp.arraySize; i++)
+                        {
+                            var elem = interceptorListProp.GetArrayElementAtIndex(i);
+                            _unifiedConfigs.Add(new UnifiedEntry
+                            {
+                                TypeName = elem.FindPropertyRelative("typeName")?.stringValue ?? string.Empty,
+                                Enabled = elem.FindPropertyRelative("enabled")?.boolValue ?? true,
+                                OrderOverride = elem.FindPropertyRelative("orderOverride")?.intValue ?? 0,
+                                IsGlobal = false,
+                                DataTypeFullName = dataTypeFullName,
+                            });
+                        }
+                    }
                 }
             }
         }
 
-        private static void SetInterceptorConfigFields(InterceptorConfig config, string typeName, bool enabled, int orderOverride)
+        private void SaveUnifiedConfigs()
         {
-            var type = typeof(InterceptorConfig);
-            type.GetField("typeName", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(config, typeName);
-            type.GetField("enabled", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(config, enabled);
-            type.GetField("orderOverride", BindingFlags.NonPublic | BindingFlags.Instance)?.SetValue(config, orderOverride);
+            // ── Save global entries back to RouteCore ──
+            var core = RouteCore.Instance;
+            if (core != null)
+            {
+                var so = new SerializedObject(core);
+                var configsProp = so.FindProperty("globalInterceptorConfigs");
+                if (configsProp != null)
+                {
+                    var globalEntries = _unifiedConfigs.Where(e => e.IsGlobal).ToList();
+                    configsProp.arraySize = globalEntries.Count;
+                    for (var i = 0; i < globalEntries.Count; i++)
+                    {
+                        var elem = configsProp.GetArrayElementAtIndex(i);
+                        WriteConfigToProperty(elem, globalEntries[i]);
+                    }
+                }
+                so.ApplyModifiedProperties();
+                EditorUtility.SetDirty(core);
+            }
+
+            // ── Save typed entries back to RouteRegistry ──
+            var registry = Resources.Load<RouteRegistry>("RouteNavigatorDatabase/RouteRegistry");
+            if (registry != null)
+            {
+                var so = new SerializedObject(registry);
+                var groupsProp = so.FindProperty("typedGroups");
+                if (groupsProp != null)
+                {
+                    // Group typed entries by DataTypeFullName, preserving order
+                    var groupOrder = new List<string>();
+                    var groupEntries = new Dictionary<string, List<UnifiedEntry>>();
+                    foreach (var entry in _unifiedConfigs.Where(e => !e.IsGlobal))
+                    {
+                        var key = entry.DataTypeFullName ?? string.Empty;
+                        if (!groupEntries.ContainsKey(key))
+                        {
+                            groupOrder.Add(key);
+                            groupEntries[key] = new List<UnifiedEntry>();
+                        }
+                        groupEntries[key].Add(entry);
+                    }
+
+                    groupsProp.arraySize = groupOrder.Count;
+                    for (var g = 0; g < groupOrder.Count; g++)
+                    {
+                        var key = groupOrder[g];
+                        var group = groupsProp.GetArrayElementAtIndex(g);
+                        var nameProp = group.FindPropertyRelative("dataTypeFullName");
+                        if (nameProp != null) nameProp.stringValue = key;
+
+                        var interceptorListProp = group.FindPropertyRelative("interceptors");
+                        var entries = groupEntries[key];
+                        interceptorListProp.arraySize = entries.Count;
+                        for (var i = 0; i < entries.Count; i++)
+                        {
+                            var elem = interceptorListProp.GetArrayElementAtIndex(i);
+                            WriteConfigToProperty(elem, entries[i]);
+                        }
+                    }
+                }
+                so.ApplyModifiedProperties();
+                EditorUtility.SetDirty(registry);
+            }
+
+            AssetDatabase.SaveAssets();
         }
+
+        private static void WriteConfigToProperty(SerializedProperty prop, UnifiedEntry entry)
+        {
+            var typeNameProp = prop.FindPropertyRelative("typeName");
+            if (typeNameProp != null) typeNameProp.stringValue = entry.TypeName;
+            var enabledProp = prop.FindPropertyRelative("enabled");
+            if (enabledProp != null) enabledProp.boolValue = entry.Enabled;
+            var orderProp = prop.FindPropertyRelative("orderOverride");
+            if (orderProp != null) orderProp.intValue = entry.OrderOverride;
+        }
+
+        // ── Refresh ──
 
         private void Refresh()
         {
-            _globalInterceptorList.itemsSource = _globalConfigs;
-            _typedInterceptorList.itemsSource = _typedConfigs;
-            _globalInterceptorList.Rebuild();
-            _typedInterceptorList.Rebuild();
+            _unifiedList.itemsSource = _unifiedConfigs;
+            _unifiedList.Rebuild();
         }
     }
 }

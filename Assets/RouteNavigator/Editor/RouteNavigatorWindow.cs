@@ -20,15 +20,12 @@ namespace Kogane.RouteNavigator.Editor
 
         [SerializeField] private List<RouteDefinition> _allRoutes = new();
 
+        // TODO: GraphView 可视化路由图 — 当前版本不开发，后续版本计划
         private RouteListPanel _routeListPanel;
         private RouteInspectorPanel _inspectorPanel;
         private PipelinePanel _pipelinePanel;
-        private RouteGraphView _graphView;
 
         private VisualElement _pipelineContent;
-        private VisualElement _graphContent;
-        private ToolbarButton _tabPipeline;
-        private ToolbarButton _tabGraph;
 
         // ── Window Registration ──
 
@@ -109,17 +106,7 @@ namespace Kogane.RouteNavigator.Editor
             _inspectorPanel = new RouteInspectorPanel(root, OnRouteUpdated);
 
             _pipelineContent = root.Q<VisualElement>("pipeline-content");
-            _graphContent = root.Q<VisualElement>("graph-content");
             _pipelinePanel = new PipelinePanel(_pipelineContent);
-
-            // ── Tabs ──
-            _tabPipeline = root.Q<ToolbarButton>("tab-pipeline");
-            _tabGraph = root.Q<ToolbarButton>("tab-graph");
-
-            if (_tabPipeline != null)
-                _tabPipeline.clicked += () => SwitchTab(true);
-            if (_tabGraph != null)
-                _tabGraph.clicked += () => SwitchTab(false);
 
             // ── Refresh UI ──
             _routeListPanel.SetRoutes(_allRoutes);
@@ -129,18 +116,6 @@ namespace Kogane.RouteNavigator.Editor
 
             // Register asset change callback
             EditorApplication.projectChanged += OnProjectChanged;
-        }
-
-        // ── Tab Switching ──
-
-        private void SwitchTab(bool showPipeline)
-        {
-            _pipelineContent.style.display = showPipeline ? DisplayStyle.Flex : DisplayStyle.None;
-            _graphContent.style.display = showPipeline ? DisplayStyle.None : DisplayStyle.Flex;
-
-            _tabPipeline.RemoveFromClassList("tab-active");
-            _tabGraph.RemoveFromClassList("tab-active");
-            (showPipeline ? _tabPipeline : _tabGraph).AddToClassList("tab-active");
         }
 
         // ── Event Handlers ──

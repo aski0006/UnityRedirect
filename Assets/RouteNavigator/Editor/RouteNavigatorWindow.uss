@@ -165,43 +165,11 @@
     flex-wrap: wrap;
 }
 
-/* ── Tab Bar ── */
-.panel-tabs {
-    flex-direction: row;
-    height: 22px;
-    background-color: rgb(48, 48, 48);
-    flex-shrink: 0;
-}
-
-.tab-button {
-    height: 20px;
-    font-size: 11px;
-    padding-left: 10px;
-    padding-right: 10px;
-    background-color: transparent;
-}
-
-.tab-button:hover {
-    background-color: rgb(66, 66, 66);
-}
-
-.tab-active {
-    background-color: rgb(56, 56, 56);
-    border-bottom-color: rgb(80, 140, 200);
-    border-bottom-width: 2px;
-    color: rgb(200, 220, 240);
-}
-
-/* ── Tab Content ── */
+/* ── Pipeline Content ── */
 .tab-content {
     flex-grow: 1;
     flex-direction: column;
     overflow: hidden;
-}
-
-.graph-content {
-    align-items: center;
-    justify-content: center;
 }
 
 /* ── Interceptor Groups ── */
@@ -229,4 +197,29 @@
 
 .add-button:hover {
     background-color: rgb(70, 100, 70);
+}
+
+/* ── Interceptor Item ── */
+#interceptor-kind {
+    -unity-font-style: bold;
+    letter-spacing: 0.5px;
+}
+
+#interceptor-drag-handle {
+    cursor: move;
+    -unity-text-align: middle-center;
+    opacity: 0.6;
+}
+
+#interceptor-drag-handle:hover {
+    opacity: 1;
+    color: rgb(160, 160, 160);
+}
+
+#interceptor-delete {
+    border-width: 0;
+}
+
+#interceptor-delete:hover {
+    background-color: rgb(200, 60, 60);
 }

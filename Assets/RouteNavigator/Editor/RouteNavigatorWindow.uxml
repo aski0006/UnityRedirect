@@ -74,37 +74,23 @@
 
             <ui:VisualElement class="divider" />
 
-            <!-- Column 3: Pipeline / Graph -->
+            <!-- Column 3: Pipeline -->
             <ui:VisualElement class="column column-right">
-                <uie:Toolbar class="panel-tabs">
-                    <uie:ToolbarButton text="Pipeline" name="tab-pipeline" class="tab-button tab-active" />
-                    <uie:ToolbarButton text="Graph" name="tab-graph" class="tab-button" />
-                </uie:Toolbar>
+                <ui:VisualElement class="column-header">
+                    <ui:Label text="Pipeline" class="column-title" />
+                </ui:VisualElement>
 
                 <ui:VisualElement name="pipeline-content" class="tab-content">
                     <ui:VisualElement class="interceptor-group">
-                        <ui:Label text="Global Interceptors" class="section-label" />
+                        <ui:Label text="Interceptor Pipeline" class="section-label" />
                         <ui:ListView
-                            name="global-interceptor-list"
+                            name="unified-interceptor-list"
                             class="interceptor-list"
                             selection-type="Single"
+                            reorderable="true"
                         />
-                        <uie:ToolbarButton text="+ Add Global" name="add-global-interceptor-button" class="add-button" />
+                        <uie:ToolbarButton text="+ Add Interceptor" name="add-interceptor-button" class="add-button" />
                     </ui:VisualElement>
-
-                    <ui:VisualElement class="interceptor-group">
-                        <ui:Label text="Typed Interceptors" class="section-label" />
-                        <ui:ListView
-                            name="typed-interceptor-list"
-                            class="interceptor-list"
-                            selection-type="Single"
-                        />
-                        <uie:ToolbarButton text="+ Add Typed" name="add-typed-interceptor-button" class="add-button" />
-                    </ui:VisualElement>
-                </ui:VisualElement>
-
-                <ui:VisualElement name="graph-content" class="tab-content graph-content" style="display: none;">
-                    <ui:Label text="Route Graph — coming soon" class="empty-hint" />
                 </ui:VisualElement>
             </ui:VisualElement>
 

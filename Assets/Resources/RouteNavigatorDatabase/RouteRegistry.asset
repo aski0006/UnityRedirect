@@ -12,20 +12,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a2b0033f0b4992d48854b053f4027def, type: 3}
   m_Name: RouteRegistry
   m_EditorClassIdentifier: 
-  typedGroups:
-  - dataTypeFullName: 
-    interceptors:
-    - typeName: Kogane.RouteNavigator.ConditionInterceptor`1, Assembly-CSharp, Version=0.0.0.0,
-        Culture=neutral, PublicKeyToken=null
-      enabled: 1
-      orderOverride: 0
-  - dataTypeFullName: 
-    interceptors:
-    - typeName: Kogane.RouteNavigator.ConditionInterceptor`1, Assembly-CSharp, Version=0.0.0.0,
-        Culture=neutral, PublicKeyToken=null
-      enabled: 1
-      orderOverride: 0
-    - typeName: Kogane.RouteNavigator.TargetResolverInterceptor`1, Assembly-CSharp,
-        Version=0.0.0.0, Culture=neutral, PublicKeyToken=null
-      enabled: 1
-      orderOverride: 0
+  typedGroups: []
