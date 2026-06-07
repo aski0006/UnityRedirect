@@ -26,6 +26,8 @@ namespace Kogane.RouteNavigator.Editor
         private PipelinePanel _pipelinePanel;
 
         private VisualElement _pipelineContent;
+        private VisualElement _emptyPlaceholder;
+        private ScrollView _inspectorScroll;
 
         // ── Window Registration ──
 
@@ -72,13 +74,6 @@ namespace Kogane.RouteNavigator.Editor
             root.style.flexShrink = 0;
             root.style.height = Length.Percent(100);
 
-            // Force body to fill remaining space
-            var bodyEl = root.Q<VisualElement>(null, "body");
-            if (bodyEl != null)
-            {
-                bodyEl.style.flexGrow = 1;
-            }
-
             // Load USS
             var styleSheet = AssetDatabase.LoadAssetAtPath<StyleSheet>(UssPath);
             if (styleSheet != null)
@@ -90,13 +85,57 @@ namespace Kogane.RouteNavigator.Editor
                 Debug.LogWarning($"[RouteNavigator] USS not found at: {UssPath}");
             }
 
+            // ── Three-Column Resizable Layout ──
+            // Wrap columns in nested TwoPaneSplitView for drag-resize between all three panes
+            var bodyContainer = root.Q<VisualElement>("body-container");
+            var colLeft = root.Q<VisualElement>("column-left");
+            var colCenter = root.Q<VisualElement>("column-center");
+            var colRight = root.Q<VisualElement>("column-right");
+
+            if (bodyContainer != null && colLeft != null && colCenter != null && colRight != null)
+            {
+                // Remove columns from flat layout
+                colLeft.RemoveFromHierarchy();
+                colCenter.RemoveFromHierarchy();
+                colRight.RemoveFromHierarchy();
+
+                // Inner split: center (flexible) | right (fixed 320px)
+                var innerSplit = new TwoPaneSplitView
+                {
+                    fixedPaneIndex = 1,
+                    fixedPaneInitialDimension = 320,
+                    orientation = TwoPaneSplitViewOrientation.Horizontal,
+                    name = "body-split-inner"
+                };
+                innerSplit.Add(colCenter);
+                innerSplit.Add(colRight);
+
+                // Outer split: left (fixed 260px) | inner split (flexible)
+                var outerSplit = new TwoPaneSplitView
+                {
+                    fixedPaneIndex = 0,
+                    fixedPaneInitialDimension = 260,
+                    orientation = TwoPaneSplitViewOrientation.Horizontal,
+                    name = "body-split-outer"
+                };
+                outerSplit.Add(colLeft);
+                outerSplit.Add(innerSplit);
+
+                bodyContainer.Clear();
+                bodyContainer.Add(outerSplit);
+            }
+
             // ── Toolbar ──
-            var _refreshBtn = root.Q<ToolbarButton>("refresh-button");
-            if (_refreshBtn != null) _refreshBtn.clicked += OnRefresh;
-            var _createBtn = root.Q<ToolbarButton>("create-route-button");
-            if (_createBtn != null) _createBtn.clicked += OnCreateRoute;
-            var _initBtn = root.Q<ToolbarButton>("init-assets-button");
-            if (_initBtn != null) _initBtn.clicked += OnInitAssets;
+            var refreshBtn = root.Q<ToolbarButton>("refresh-button");
+            if (refreshBtn != null) refreshBtn.clicked += OnRefresh;
+            var createBtn = root.Q<ToolbarButton>("create-route-button");
+            if (createBtn != null) createBtn.clicked += OnCreateRoute;
+            var initBtn = root.Q<ToolbarButton>("init-assets-button");
+            if (initBtn != null) initBtn.clicked += OnInitAssets;
+            var locateCoreBtn = root.Q<ToolbarButton>("locate-core-button");
+            if (locateCoreBtn != null) locateCoreBtn.clicked += OnLocateCore;
+            var locateRegistryBtn = root.Q<ToolbarButton>("locate-registry-button");
+            if (locateRegistryBtn != null) locateRegistryBtn.clicked += OnLocateRegistry;
 
             // ── Panels ──
             var listView = root.Q<ListView>("route-list-view");
@@ -108,11 +147,18 @@ namespace Kogane.RouteNavigator.Editor
             _pipelineContent = root.Q<VisualElement>("pipeline-content");
             _pipelinePanel = new PipelinePanel(_pipelineContent);
 
+            // ── Empty placeholder ──
+            _emptyPlaceholder = root.Q<VisualElement>("empty-placeholder");
+            _inspectorScroll = root.Q<ScrollView>("inspector-scroll");
+            var emptyCreateBtn = root.Q<Button>("empty-create-route-button");
+            if (emptyCreateBtn != null) emptyCreateBtn.clicked += OnCreateRoute;
+
             // ── Refresh UI ──
             _routeListPanel.SetRoutes(_allRoutes);
             _routeListPanel.Deselect();
             UpdateInspector(null);
             UpdatePipeline(null);
+            UpdateEmptyState();
 
             // Register asset change callback
             EditorApplication.projectChanged += OnProjectChanged;
@@ -128,6 +174,7 @@ namespace Kogane.RouteNavigator.Editor
             _routeListPanel.Deselect();
             UpdateInspector(null);
             UpdatePipeline(null);
+            UpdateEmptyState();
         }
 
         private void OnCreateRoute()
@@ -149,6 +196,11 @@ namespace Kogane.RouteNavigator.Editor
 
             _routeListPanel.SetRoutes(_allRoutes);
             _routeListPanel.SelectRoute(route);
+            UpdateEmptyState();
+
+            // 显式刷新 Inspector，确保 UnityEvent 正确渲染
+            UpdateInspector(route);
+            UpdatePipeline(route);
         }
 
         private void OnRouteSelected(RouteDefinition route)
@@ -169,11 +221,51 @@ namespace Kogane.RouteNavigator.Editor
             OnRefresh();
         }
 
+        private void OnLocateCore()
+        {
+            var core = AssetDatabase.LoadAssetAtPath<RouteCore>(
+                "Assets/Resources/RouteNavigatorDatabase/RouteCore.asset");
+            if (core != null)
+            {
+                EditorGUIUtility.PingObject(core);
+                Selection.activeObject = core;
+            }
+            else
+            {
+                Debug.LogWarning("[RouteNavigator] RouteCore.asset not found.");
+            }
+        }
+
+        private void OnLocateRegistry()
+        {
+            var registry = AssetDatabase.LoadAssetAtPath<RouteRegistry>(
+                "Assets/Resources/RouteNavigatorDatabase/RouteRegistry.asset");
+            if (registry != null)
+            {
+                EditorGUIUtility.PingObject(registry);
+                Selection.activeObject = registry;
+            }
+            else
+            {
+                Debug.LogWarning("[RouteNavigator] RouteRegistry.asset not found.");
+            }
+        }
+
         private void OnProjectChanged()
         {
             // Re-scan when assets change externally
             LoadAllRoutes();
             _routeListPanel.SetRoutes(_allRoutes);
+            UpdateEmptyState();
+        }
+
+        private void UpdateEmptyState()
+        {
+            var hasRoutes = _allRoutes.Count > 0;
+            if (_emptyPlaceholder != null)
+                _emptyPlaceholder.style.display = hasRoutes ? DisplayStyle.None : DisplayStyle.Flex;
+            if (_inspectorScroll != null)
+                _inspectorScroll.style.display = hasRoutes ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
         // ── Data Management ──

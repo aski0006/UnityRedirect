@@ -8,15 +8,17 @@
             <uie:ToolbarButton text="Refresh" name="refresh-button" class="toolbar-button" />
             <uie:ToolbarButton text="Create Route" name="create-route-button" class="toolbar-button" />
             <uie:ToolbarButton text="Init Assets" name="init-assets-button" class="toolbar-button" />
+            <uie:ToolbarButton text="Locate Core" name="locate-core-button" class="toolbar-button locate-button" />
+            <uie:ToolbarButton text="Locate Registry" name="locate-registry-button" class="toolbar-button locate-button" />
             <uie:ToolbarSpacer />
             <ui:Label text="Route Navigator" class="toolbar-title" />
         </uie:Toolbar>
 
-        <!-- Three-Column Body -->
-        <ui:VisualElement class="body">
-
+        <!-- Three-Column Resizable Body -->
+        <ui:VisualElement name="body-container" class="body">
+            <!-- Columns are wrapped in TwoPaneSplitView programmatically in BuildUI -->
             <!-- Column 1: Route List -->
-            <ui:VisualElement class="column column-left">
+            <ui:VisualElement name="column-left" class="column column-left">
                 <ui:VisualElement class="column-header">
                     <ui:Label text="Routes" class="column-title" />
                     <uie:ToolbarSearchField name="route-search-field" class="search-field" />
@@ -31,12 +33,16 @@
                 <ui:Label name="route-list-empty" class="empty-hint" text="No routes defined." />
             </ui:VisualElement>
 
-            <ui:VisualElement class="divider" />
-
             <!-- Column 2: Route Inspector -->
-            <ui:VisualElement class="column column-center">
-                <!-- Scrollable inspector content -->
-                <ui:ScrollView class="inspector-scroll">
+            <ui:VisualElement name="column-center" class="column column-center">
+                <!-- Empty placeholder when no routes exist -->
+                <ui:VisualElement name="empty-placeholder" class="empty-placeholder">
+                    <ui:Label text="No Routes Defined" class="empty-placeholder-title" />
+                    <ui:Label text="Create a Route Definition to start configuring navigation." class="empty-placeholder-desc" />
+                    <ui:Button text="Create Route" name="empty-create-route-button" class="empty-placeholder-button" />
+                </ui:VisualElement>
+
+                <ui:ScrollView name="inspector-scroll" class="inspector-scroll">
                     <ui:VisualElement class="inspector-section">
                         <ui:Label text="Route Data Type" class="section-label" />
                         <ui:VisualElement name="type-dropdown-container" class="dropdown-container" />
@@ -61,21 +67,25 @@
                     </ui:VisualElement>
 
                     <ui:VisualElement class="inspector-section">
-                        <ui:Label text="Tags" class="section-label" />
-                        <ui:VisualElement name="tags-container" class="tags-container" />
+                        <ui:Label text="Tags (comma-separated)" class="section-label" />
+                        <ui:TextField name="tags-field" class="inspector-field" />
+                    </ui:VisualElement>
+
+                    <ui:VisualElement class="inspector-section">
+                        <ui:Label text="Navigation Event" class="section-label" />
+                        <ui:VisualElement name="unity-event-container" class="inspector-field" />
                     </ui:VisualElement>
                 </ui:ScrollView>
 
-                <!-- Bottom toolbar for delete -->
+                <!-- Bottom toolbar: delete + locate -->
                 <ui:VisualElement class="column-footer">
+                    <ui:Button text="Locate Define" name="locate-define-button" class="locate-button" />
                     <ui:Button text="Delete Route" name="delete-route-button" class="danger-button" />
                 </ui:VisualElement>
             </ui:VisualElement>
 
-            <ui:VisualElement class="divider" />
-
             <!-- Column 3: Pipeline -->
-            <ui:VisualElement class="column column-right">
+            <ui:VisualElement name="column-right" class="column column-right">
                 <ui:VisualElement class="column-header">
                     <ui:Label text="Pipeline" class="column-title" />
                 </ui:VisualElement>
@@ -95,6 +105,6 @@
             </ui:VisualElement>
 
         </ui:VisualElement>
+
     </ui:VisualElement>
 </ui:UXML>
-

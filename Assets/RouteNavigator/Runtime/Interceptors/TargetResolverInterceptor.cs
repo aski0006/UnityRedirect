@@ -68,6 +68,9 @@ namespace Kogane.RouteNavigator
                     mb.StartCoroutine(PostProcessWrapper(routeTarget, context.Data, myVersion));
                 }
             }
+
+            // ── 触发 RouteDefinition 上的 UnityEvent ──
+            definition.OnNavigationComplete?.Invoke();
         }
 
         private static IEnumerator LoadSceneAsync(

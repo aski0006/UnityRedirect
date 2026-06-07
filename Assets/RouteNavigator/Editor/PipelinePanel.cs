@@ -72,6 +72,7 @@ namespace Kogane.RouteNavigator.Editor
             _unifiedList.bindItem = (element, index) => BindInterceptorItem(element, index);
             _unifiedList.itemsSource = _unifiedConfigs;
             _unifiedList.reorderable = true;
+            _unifiedList.virtualizationMethod = CollectionVirtualizationMethod.DynamicHeight;
 
             _addButton.clicked += () => ShowAddInterceptorDialog();
         }
@@ -85,11 +86,12 @@ namespace Kogane.RouteNavigator.Editor
                 style =
                 {
                     flexDirection = FlexDirection.Row,
+                    flexWrap = Wrap.Wrap,
                     paddingLeft = 8,
-                    paddingRight = 8,
-                    paddingTop = 3,
-                    paddingBottom = 3,
-                    alignItems = Align.Center,
+                    paddingRight = 4,
+                    paddingTop = 4,
+                    paddingBottom = 4,
+                    alignItems = Align.FlexStart,
                 }
             };
 
@@ -101,7 +103,10 @@ namespace Kogane.RouteNavigator.Editor
                 {
                     fontSize = 14,
                     marginRight = 4,
+                    marginTop = 1,
                     flexGrow = 0,
+                    flexShrink = 0,
+                    width = 14,
                     color = new StyleColor(new Color(0.35f, 0.35f, 0.35f)),
                     unityTextAlign = TextAnchor.MiddleCenter,
                 }
@@ -114,7 +119,9 @@ namespace Kogane.RouteNavigator.Editor
                 {
                     fontSize = 10,
                     marginRight = 4,
+                    marginTop = 2,
                     flexGrow = 0,
+                    flexShrink = 0,
                     unityTextAlign = TextAnchor.MiddleLeft,
                 }
             };
@@ -125,7 +132,9 @@ namespace Kogane.RouteNavigator.Editor
                 style =
                 {
                     marginRight = 4,
+                    marginTop = 1,
                     flexGrow = 0,
+                    flexShrink = 0,
                 }
             };
 
@@ -136,7 +145,10 @@ namespace Kogane.RouteNavigator.Editor
                 {
                     fontSize = 11,
                     flexGrow = 1,
+                    flexShrink = 1,
                     unityTextAlign = TextAnchor.MiddleLeft,
+                    whiteSpace = WhiteSpace.Normal,
+                    overflow = Overflow.Hidden,
                 }
             };
 
@@ -149,6 +161,8 @@ namespace Kogane.RouteNavigator.Editor
                     fontSize = 12,
                     width = 20,
                     height = 20,
+                    minWidth = 20,
+                    minHeight = 20,
                     paddingLeft = 0,
                     paddingRight = 0,
                     paddingTop = 0,
@@ -159,6 +173,8 @@ namespace Kogane.RouteNavigator.Editor
                     borderTopRightRadius = 2,
                     borderBottomLeftRadius = 2,
                     borderBottomRightRadius = 2,
+                    flexGrow = 0,
+                    flexShrink = 0,
                 }
             };
 

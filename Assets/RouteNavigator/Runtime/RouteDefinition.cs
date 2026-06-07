@@ -2,6 +2,7 @@
 using UnityEditor;
 #endif
 using UnityEngine;
+using UnityEngine.Events;
 
 namespace Kogane.RouteNavigator
 {
@@ -52,6 +53,12 @@ namespace Kogane.RouteNavigator
         [Header("标签与备注")]
         [SerializeField] private string[] tags;
         [SerializeField] private string description;
+
+        [Header("导航事件")]
+        [SerializeField] private UnityEvent onNavigationComplete = new();
+
+        /// <summary>导航完成时触发（编辑器可配置回调）</summary>
+        public UnityEvent OnNavigationComplete => onNavigationComplete;
 
         public string RouteId => routeId;
         public string DisplayName => displayName;

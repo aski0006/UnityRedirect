@@ -29,14 +29,18 @@ namespace Kogane.RouteNavigator.Editor
         private readonly ObjectField _directRefField;
         private readonly ObjectField _prefabField;
         private readonly Toggle _unloadPreviousToggle;
-        private readonly VisualElement _tagsContainer;
+        private readonly TextField _tagsField;
         private readonly VisualElement _typeDropdownContainer;
+        private readonly IMGUIContainer _unityEventIMGUI;
         private readonly Button _deleteButton;
+        private readonly Button _locateButton;
 
         private RouteDefinition _currentRoute;
 
         // Serialized object helpers
         private SerializedObject _serializedObject;
+        private SerializedObject _unityEventSerializedObject;
+        private SerializedProperty _unityEventProp;
         private bool _isUpdating;
 
         public RouteInspectorPanel(VisualElement root, Action<RouteDefinition> onChanged)
@@ -56,9 +60,18 @@ namespace Kogane.RouteNavigator.Editor
             _directRefField = root.Q<ObjectField>("direct-reference-field");
             _prefabField = root.Q<ObjectField>("prefab-reference-field");
             _unloadPreviousToggle = root.Q<Toggle>("unload-previous-toggle");
-            _tagsContainer = root.Q<VisualElement>("tags-container");
+            _tagsField = root.Q<TextField>("tags-field");
             _typeDropdownContainer = root.Q<VisualElement>("type-dropdown-container");
             _deleteButton = root.Q<Button>("delete-route-button");
+            _locateButton = root.Q<Button>("locate-define-button");
+
+            // UnityEvent rendered via IMGUI container with dedicated SerializedObject
+            var unityEventContainer = root.Q<VisualElement>("unity-event-container");
+            _unityEventIMGUI = new IMGUIContainer(DrawUnityEvent);
+            _unityEventIMGUI.style.minHeight = 60;
+            _unityEventIMGUI.style.flexGrow = 1;
+            _unityEventIMGUI.style.flexShrink = 0;
+            unityEventContainer?.Add(_unityEventIMGUI);
 
             ConfigureTypeDropdown();
             RegisterFieldCallbacks();
@@ -223,6 +236,40 @@ namespace Kogane.RouteNavigator.Editor
             });
 
             _deleteButton.clicked += OnDeleteRoute;
+
+            // Locate the current RouteDefinition in Project window
+            if (_locateButton != null)
+            {
+                _locateButton.clicked += () =>
+                {
+                    if (_currentRoute != null)
+                    {
+                        EditorGUIUtility.PingObject(_currentRoute);
+                    }
+                };
+            }
+
+            // Tags: comma-separated string ↔ string[]
+            _tagsField.RegisterValueChangedCallback(evt =>
+            {
+                if (_isUpdating || _currentRoute == null) return;
+                var so = GetOrCreateSerializedObject();
+                if (so == null) return;
+                var prop = so.FindProperty("tags");
+                var raw = evt.newValue ?? string.Empty;
+                var parts = raw.Split(',', System.StringSplitOptions.RemoveEmptyEntries);
+                var tags = new string[parts.Length];
+                for (var i = 0; i < parts.Length; i++)
+                    tags[i] = parts[i].Trim();
+                prop.arraySize = tags.Length;
+                for (var i = 0; i < tags.Length; i++)
+                {
+                    var elem = prop.GetArrayElementAtIndex(i);
+                    elem.stringValue = tags[i];
+                }
+                so.ApplyModifiedProperties();
+                NotifyChanged();
+            });
         }
 
         private void OnTypeSelected(Type type)
@@ -275,6 +322,23 @@ namespace Kogane.RouteNavigator.Editor
             _prefabField.style.display = showPrefab ? DisplayStyle.Flex : DisplayStyle.None;
         }
 
+        private void DrawUnityEvent()
+        {
+            if (_unityEventSerializedObject == null || _unityEventProp == null) return;
+
+            _unityEventSerializedObject.Update();
+            EditorGUILayout.PropertyField(_unityEventProp, true);
+            if (_unityEventSerializedObject.hasModifiedProperties)
+            {
+                _unityEventSerializedObject.ApplyModifiedProperties();
+                if (_currentRoute != null)
+                {
+                    EditorUtility.SetDirty(_currentRoute);
+                    NotifyChanged();
+                }
+            }
+        }
+
         private void NotifyChanged()
         {
             _onChanged?.Invoke(_currentRoute);
@@ -287,12 +351,25 @@ namespace Kogane.RouteNavigator.Editor
             _serializedObject = null;
             _isUpdating = true;
 
+            // Reset UnityEvent SerializedObject for the new route
+            if (_unityEventSerializedObject != null)
+            {
+                _unityEventSerializedObject.Dispose();
+                _unityEventSerializedObject = null;
+            }
+            _unityEventProp = null;
+
             if (route == null)
             {
                 ClearFields();
+                _unityEventIMGUI?.MarkDirtyLayout();
                 _isUpdating = false;
                 return;
             }
+
+            _unityEventSerializedObject = new SerializedObject(route);
+            _unityEventProp = _unityEventSerializedObject.FindProperty("onNavigationComplete");
+            _unityEventIMGUI?.MarkDirtyLayout();
 
             _routeIdField.value = route.RouteId ?? string.Empty;
             _displayNameField.value = route.DisplayName ?? string.Empty;
@@ -310,39 +387,8 @@ namespace Kogane.RouteNavigator.Editor
             // Show scene path display
             _scenePathField.isReadOnly = true;
 
-            // Tags display (read-only summary for now)
-            if (route.Tags != null && route.Tags.Length > 0)
-            {
-                _tagsContainer.Clear();
-                foreach (var tag in route.Tags)
-                {
-                    if (string.IsNullOrEmpty(tag)) continue;
-
-                    var tagLabel = new Label($"#{tag}")
-                    {
-                        style =
-                        {
-                            fontSize = 10,
-                            color = new StyleColor(new Color(0.5f, 0.7f, 1.0f)),
-                            marginRight = 4,
-                            marginBottom = 2,
-                            paddingLeft = 4,
-                            paddingRight = 4,
-                            backgroundColor = new StyleColor(new Color(0.2f, 0.3f, 0.4f, 0.5f)),
-                            unityTextAlign = TextAnchor.MiddleLeft,
-                        }
-                    };
-                    _tagsContainer.Add(tagLabel);
-                }
-            }
-            else
-            {
-                _tagsContainer.Clear();
-                _tagsContainer.Add(new Label("(none)")
-                {
-                    style = { color = new StyleColor(new Color(0.5f, 0.5f, 0.5f)), fontSize = 10 }
-                });
-            }
+            // Tags: display as comma-separated string
+            _tagsField.value = route.Tags != null ? string.Join(", ", route.Tags) : string.Empty;
 
             _isUpdating = false;
         }
@@ -359,11 +405,7 @@ namespace Kogane.RouteNavigator.Editor
             _directRefField.value = null;
             _prefabField.value = null;
             _unloadPreviousToggle.value = false;
-            _tagsContainer.Clear();
-            _tagsContainer.Add(new Label("(none)")
-            {
-                style = { color = new StyleColor(new Color(0.5f, 0.5f, 0.5f)), fontSize = 10 }
-            });
+            _tagsField.value = string.Empty;
 
             UpdateTargetVisibility(RouteTargetType.None);
         }
