@@ -10,12 +10,13 @@ namespace Kogane.RouteNavigator.Editor
     /// </summary>
     public static class RouteNavigatorAssets
     {
+        /// <summary>资产根文件夹（必须位于 Resources 下以确保运行时可通过 Resources.Load 加载）</summary>
         private const string DatabaseFolder = "Assets/Resources/RouteNavigatorDatabase";
 
-        /// <summary>RouteCore 资产路径</summary>
+        /// <summary>RouteCore 资产路径（运行时对应 RouteCore.RouteResourcePaths.RouteCore）</summary>
         public const string RouteCorePath = DatabaseFolder + "/RouteCore.asset";
 
-        /// <summary>RouteRegistry 资产路径</summary>
+        /// <summary>RouteRegistry 资产路径（运行时对应 RouteCore.RouteResourcePaths.RouteRegistry）</summary>
         public const string RouteRegistryPath = DatabaseFolder + "/RouteRegistry.asset";
 
         /// <summary>

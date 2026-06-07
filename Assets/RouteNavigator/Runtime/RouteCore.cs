@@ -27,7 +27,7 @@ namespace Kogane.RouteNavigator
             {
                 if (_instance == null)
                 {
-                    _instance = Resources.Load<RouteCore>("RouteNavigatorDatabase/RouteCore");
+                    _instance = Resources.Load<RouteCore>(RouteResourcePaths.RouteCore);
                     if (_instance != null)
                     {
                         _instance.RebuildGlobalInterceptors();
@@ -72,7 +72,7 @@ namespace Kogane.RouteNavigator
             // 触发静态构造器和单例加载
             if (_instance == null)
             {
-                _instance = Resources.Load<RouteCore>("RouteNavigatorDatabase/RouteCore");
+                _instance = Resources.Load<RouteCore>(RouteResourcePaths.RouteCore);
                 if (_instance != null)
                 {
                     _instance.RebuildGlobalInterceptors();
@@ -202,6 +202,19 @@ namespace Kogane.RouteNavigator
 
             return System.Activator.CreateInstance(type) as INavigationInterceptor<TData>;
         }
+    }
+
+    /// <summary>
+    /// Resources.Load 路径常量。
+    /// 与编辑器 RouteNavigatorAssets 中的资产路径对应，更改时需两边同步。
+    /// </summary>
+    internal static class RouteResourcePaths
+    {
+        /// <summary>RouteCore 的 Resources 加载路径（相对于 Resources 文件夹）</summary>
+        public const string RouteCore = "RouteNavigatorDatabase/RouteCore";
+
+        /// <summary>RouteRegistry 的 Resources 加载路径（相对于 Resources 文件夹）</summary>
+        public const string RouteRegistry = "RouteNavigatorDatabase/RouteRegistry";
     }
 }
 

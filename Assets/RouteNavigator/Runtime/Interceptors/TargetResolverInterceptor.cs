@@ -186,6 +186,12 @@ namespace Kogane.RouteNavigator
         {
             yield return null;
 
+            // 如果新导航已发起，提前终止旧目标的后处理（避免重量级操作继续执行）
+            if (RouteNavigator<TData>.CurrentVersion != version)
+            {
+                yield break;
+            }
+
             try
             {
                 target.StartPostProcess(data);

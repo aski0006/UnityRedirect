@@ -178,7 +178,7 @@ namespace Kogane.RouteNavigator
             {
                 if (_persistenceLoaded) return;
 
-                var registry = Resources.Load<RouteRegistry>("RouteRegistry");
+                var registry = Resources.Load<RouteRegistry>(RouteCore.RouteResourcePaths.RouteRegistry);
                 if (registry != null)
                 {
                     var persistedInterceptors = registry.LoadTypedInterceptors<TData>();
@@ -268,10 +268,8 @@ namespace Kogane.RouteNavigator
 
                         if (!IsCurrentVersion(version, ctx)) yield break;
 
-                        bool hasError = false;
                         yield return ExecuteInterceptorSafely(interceptor.OnNavigate(ctx), e =>
                         {
-                            hasError = true;
                             Debug.LogError(
                                 $"[Route] 通用拦截器异常 [{interceptor.GetType().Name}]: {e.Message}");
                             ctx.Cancel = true;
@@ -296,10 +294,8 @@ namespace Kogane.RouteNavigator
 
                     if (!IsCurrentVersion(version, ctx)) yield break;
 
-                    bool hasError = false;
                     yield return ExecuteInterceptorSafely(interceptor.OnNavigate(ctx), e =>
                     {
-                        hasError = true;
                         Debug.LogError(
                             $"[Route] 拦截器异常 [{interceptor.GetType().Name}]: {e.Message}");
                         ctx.Cancel = true;

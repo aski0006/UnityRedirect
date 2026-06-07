@@ -48,6 +48,8 @@ namespace Kogane.RouteNavigator
 
         [Header("加载行为")]
         [SerializeField] private LoadMode loadMode;
+        // TODO: TargetResolverInterceptor 中尚未实现 UnloadPrevious 逻辑。
+        // 实现时需在加载新场景前，根据上一个 RouteDefinition 的此字段决定是否卸载旧场景。
         [SerializeField] private bool unloadPrevious;
 
         [Header("标签与备注")]
