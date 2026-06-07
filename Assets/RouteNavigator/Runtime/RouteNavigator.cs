@@ -3,15 +3,13 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
-namespace Kogane.RouteNavigator
-{
+namespace Kogane.RouteNavigator {
     /// <summary>
     /// 泛型导航入口。
     /// 作为 RouteCore 的薄包装层，管理 TData 专属拦截器。
     /// </summary>
     public static class RouteNavigator<TData>
-        where TData : struct
-    {
+        where TData : struct {
         private static int _currentVersion;
         private static Coroutine _currentCoroutine;
         private static MonoBehaviour _coroutineHost;
@@ -35,10 +33,8 @@ namespace Kogane.RouteNavigator
         /// 宿主应是一个常驻对象（如游戏管理器），导航协程将附着于此。
         /// 宿主会被设为 DontDestroyOnLoad，跨场景不丢失。
         /// </summary>
-        public static void Initialize(MonoBehaviour coroutineHost)
-        {
-            if (coroutineHost == null)
-            {
+        public static void Initialize(MonoBehaviour coroutineHost) {
+            if (coroutineHost == null) {
                 Debug.LogError("[RouteNavigator] 协程宿主不能为 null");
                 return;
             }
@@ -65,8 +61,7 @@ namespace Kogane.RouteNavigator
         public static void Navigate(
             string routeId,
             TData data,
-            Action<NavigationResult> onComplete = null)
-        {
+            Action<NavigationResult> onComplete = null) {
             Navigate(routeId, data, null, onComplete);
         }
 
@@ -81,16 +76,13 @@ namespace Kogane.RouteNavigator
             string routeId,
             TData data,
             GameObject source,
-            Action<NavigationResult> onComplete = null)
-        {
+            Action<NavigationResult> onComplete = null) {
             // 确保持久化已加载
-            if (!_persistenceLoaded)
-            {
+            if (!_persistenceLoaded) {
                 LoadPersistence();
             }
 
-            if (_coroutineHost == null)
-            {
+            if (_coroutineHost == null) {
                 Debug.LogError(
                     "[RouteNavigator] 未初始化。请先调用 Initialize(MonoBehaviour)。");
                 var errorResult = NavigationResult.Failed("RouteNavigator 未初始化");
@@ -99,8 +91,7 @@ namespace Kogane.RouteNavigator
                 return;
             }
 
-            if (string.IsNullOrEmpty(routeId))
-            {
+            if (string.IsNullOrEmpty(routeId)) {
                 var errorResult = NavigationResult.Failed("routeId 不能为空");
                 onComplete?.Invoke(errorResult);
                 DispatchResult(routeId, data, errorResult);
@@ -108,15 +99,13 @@ namespace Kogane.RouteNavigator
             }
 
             int version;
-            lock (_lock)
-            {
+            lock (_lock) {
                 _currentVersion++;
                 version = _currentVersion;
             }
 
             // 停止上一次导航
-            if (_currentCoroutine != null)
-            {
+            if (_currentCoroutine != null) {
                 _coroutineHost.StopCoroutine(_currentCoroutine);
                 _currentCoroutine = null;
             }
@@ -129,12 +118,10 @@ namespace Kogane.RouteNavigator
         /// <summary>
         /// 注册一个类型专属拦截器。
         /// </summary>
-        public static void RegisterInterceptor(INavigationInterceptor<TData> interceptor)
-        {
+        public static void RegisterInterceptor(INavigationInterceptor<TData> interceptor) {
             if (interceptor == null) return;
 
-            lock (_lock)
-            {
+            lock (_lock) {
                 _typedInterceptors.Add(interceptor);
                 _typedInterceptors.Sort((a, b) => a.Order.CompareTo(b.Order));
             }
@@ -144,10 +131,8 @@ namespace Kogane.RouteNavigator
         /// 移除指定类型的拦截器。
         /// </summary>
         public static void RemoveInterceptor<T>()
-            where T : INavigationInterceptor<TData>
-        {
-            lock (_lock)
-            {
+            where T : INavigationInterceptor<TData> {
+            lock (_lock) {
                 _typedInterceptors.RemoveAll(i => i is T);
             }
         }
@@ -156,10 +141,8 @@ namespace Kogane.RouteNavigator
         /// 重置导航器状态（测试用）。
         /// 清除所有注册的拦截器和版本号。
         /// </summary>
-        public static void Reset()
-        {
-            lock (_lock)
-            {
+        public static void Reset() {
+            lock (_lock) {
                 _typedInterceptors.Clear();
                 _currentVersion = 0;
                 _currentCoroutine = null;
@@ -170,20 +153,16 @@ namespace Kogane.RouteNavigator
         /// <summary>
         /// 从 RouteRegistry ScriptableObject 加载持久化的拦截器配置。
         /// </summary>
-        private static void LoadPersistence()
-        {
+        private static void LoadPersistence() {
             if (_persistenceLoaded) return;
 
-            lock (_lock)
-            {
+            lock (_lock) {
                 if (_persistenceLoaded) return;
 
-                var registry = Resources.Load<RouteRegistry>(RouteCore.RouteResourcePaths.RouteRegistry);
-                if (registry != null)
-                {
+                var registry = Resources.Load<RouteRegistry>(RouteResourcePaths.RouteRegistry);
+                if (registry != null) {
                     var persistedInterceptors = registry.LoadTypedInterceptors<TData>();
-                    for (var i = 0; i < persistedInterceptors.Count; i++)
-                    {
+                    for (var i = 0; i < persistedInterceptors.Count; i++) {
                         _typedInterceptors.Add(persistedInterceptors[i]);
                     }
                     _typedInterceptors.Sort((a, b) => a.Order.CompareTo(b.Order));
@@ -204,24 +183,20 @@ namespace Kogane.RouteNavigator
         /// 动态注册的），然后从 RouteRegistry 资产重新加载。如果需要在编辑器中保留运行时注册的
         /// 拦截器，请先将它们写入 RouteRegistry 资产。
         /// </summary>
-        internal static void ReloadPersistence()
-        {
-            lock (_lock)
-            {
+        internal static void ReloadPersistence() {
+            lock (_lock) {
                 _typedInterceptors.RemoveAll(i => !IsRuntimeRegistered(i));
                 _persistenceLoaded = false;
             }
             LoadPersistence();
 
-            lock (_lock)
-            {
+            lock (_lock) {
                 _typedInterceptors.Sort((a, b) => a.Order.CompareTo(b.Order));
             }
         }
 
         /// <summary>判断拦截器是否在运行时注册的（而非持久化加载的），暂无法精确区分，保留所有</summary>
-        private static bool IsRuntimeRegistered(INavigationInterceptor<TData> interceptor)
-        {
+        private static bool IsRuntimeRegistered(INavigationInterceptor<TData> interceptor) {
             return false; // 简化：ReloadPersistence 时全部从持久化重新加载
         }
 
@@ -230,17 +205,12 @@ namespace Kogane.RouteNavigator
         /// </summary>
         private static IEnumerator ExecuteInterceptorSafely(
             IEnumerator routine,
-            Action<Exception> onError)
-        {
-            while (true)
-            {
+            Action<Exception> onError) {
+            while (true) {
                 bool hasNext;
-                try
-                {
+                try {
                     hasNext = routine.MoveNext();
-                }
-                catch (Exception e)
-                {
+                } catch (Exception e) {
                     onError?.Invoke(e);
                     yield break;
                 }
@@ -253,23 +223,18 @@ namespace Kogane.RouteNavigator
         private static IEnumerator ExecutePipeline(
             NavigationContext<TData> ctx,
             int version,
-            Action<NavigationResult> onComplete)
-        {
-            try
-            {
+            Action<NavigationResult> onComplete) {
+            try {
                 // ── 执行通用拦截器 ──
                 var core = RouteCore.Instance;
-                if (core != null)
-                {
+                if (core != null) {
                     var globalInterceptors = core.GlobalInterceptors;
-                    for (var i = 0; i < globalInterceptors.Count; i++)
-                    {
+                    for (var i = 0; i < globalInterceptors.Count; i++) {
                         var interceptor = globalInterceptors[i];
 
                         if (!IsCurrentVersion(version, ctx)) yield break;
 
-                        yield return ExecuteInterceptorSafely(interceptor.OnNavigate(ctx), e =>
-                        {
+                        yield return ExecuteInterceptorSafely(interceptor.OnNavigate(ctx), e => {
                             Debug.LogError(
                                 $"[Route] 通用拦截器异常 [{interceptor.GetType().Name}]: {e.Message}");
                             ctx.Cancel = true;
@@ -283,19 +248,16 @@ namespace Kogane.RouteNavigator
 
                 // ── 执行类型专属拦截器 ──
                 List<INavigationInterceptor<TData>> snapshot;
-                lock (_lock)
-                {
+                lock (_lock) {
                     snapshot = new List<INavigationInterceptor<TData>>(_typedInterceptors);
                 }
 
-                for (var i = 0; i < snapshot.Count; i++)
-                {
+                for (var i = 0; i < snapshot.Count; i++) {
                     var interceptor = snapshot[i];
 
                     if (!IsCurrentVersion(version, ctx)) yield break;
 
-                    yield return ExecuteInterceptorSafely(interceptor.OnNavigate(ctx), e =>
-                    {
+                    yield return ExecuteInterceptorSafely(interceptor.OnNavigate(ctx), e => {
                         Debug.LogError(
                             $"[Route] 拦截器异常 [{interceptor.GetType().Name}]: {e.Message}");
                         ctx.Cancel = true;
@@ -310,21 +272,16 @@ namespace Kogane.RouteNavigator
                 // 结果完全由拦截器链负责设定
                 // 若无拦截器设置结果，Success 默认为 false
 #if UNITY_EDITOR
-                if (ctx.Result.Success)
-                {
+                if (ctx.Result.Success) {
                     Debug.Log(
                         $"[Route] 导航完成: {ctx.RouteId}, " +
                         $"目标: {ctx.Result.TargetObject?.name}");
-                }
-                else if (!ctx.Cancel)
-                {
+                } else if (!ctx.Cancel) {
                     Debug.LogWarning(
                         $"[Route] 导航未设置成功状态: {ctx.RouteId}");
                 }
 #endif
-            }
-            finally
-            {
+            } finally {
                 // 统一触发回调并清理
                 onComplete?.Invoke(ctx.Result);
                 DispatchResult(ctx.RouteId, ctx.Data, ctx.Result);
@@ -335,20 +292,16 @@ namespace Kogane.RouteNavigator
         /// <summary>
         /// 检查当前版本号是否仍是最新。
         /// </summary>
-        private static bool IsCurrentVersion(int version, NavigationContext<TData> ctx)
-        {
-            if (_currentVersion != version)
-            {
+        private static bool IsCurrentVersion(int version, NavigationContext<TData> ctx) {
+            if (_currentVersion != version) {
                 ctx.Result = NavigationResult.Cancelled();
                 return false;
             }
             return true;
         }
 
-        private static void DispatchResult(string routeId, TData data, NavigationResult result)
-        {
-            var args = new NavigationResultEventArgs
-            {
+        private static void DispatchResult(string routeId, TData data, NavigationResult result) {
+            var args = new NavigationResultEventArgs {
                 RouteId = routeId,
                 Data = data,
                 Result = result,
